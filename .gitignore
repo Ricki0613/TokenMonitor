@@ -1,0 +1,38 @@
+# Local account data: never commit, including encrypted credentials.
+data/
+credentials/
+*.key
+*.pem
+*.pfx
+*.p12
+.env
+.env.*
+!.env.example
+auth.json
+settings.json
+
+# Build and test output.
+build/
+dist/
+bin/
+obj/
+*.exe
+*.pdb
+*.zip
+*-test.json
+*diagnose*.json
+smoke.json
+preview/
+live-*.json
+
+# IDE and OS metadata.
+.vs/
+.idea/
+*.user
+*.suo
+*.log
+*.tmp
+Thumbs.db
+Desktop.ini
+.DS_Store
+__pycache__/
