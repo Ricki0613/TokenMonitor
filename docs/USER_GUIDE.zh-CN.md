@@ -1,49 +1,72 @@
-# Token Monitor
+# Token Monitor 使用指南
 
-轻量 Windows 用量悬浮窗，安装于 `D:\Apps\TokenMonitor`。双击桌面 **Token Monitor** 图标启动。
+## 安装与启动
 
-## 使用
+1. 从 [最新发布页](https://github.com/Ricki0613/TokenMonitor/releases/latest) 下载 `TokenMonitor-v1.0.0-windows-x64.zip`。
+2. 解压到固定、可写的目录。请先解压，再运行其中的 `TokenMonitor.exe`。
+3. 确保系统为 Windows 10 / 11 x64，并有 .NET Framework 4.8。
 
-- 控制面板的 **ChatGPT** 和 **DeepSeek** 两个开关，分别显示或隐藏各自的悬浮窗。隐藏时暂停该服务的定时查询。
-- 拖动窗口顶部即可移动。窗口位置、开关状态与刷新间隔会自动保存。
-- 默认每 **30 秒**查询，可改为 15 / 30 / 60 / 120 秒，也可点“立即刷新”。服务限流时会等待后再试。
-- GPT / DeepSeek 悬浮窗始终置顶。点击浮窗右上角关闭按钮，只隐藏该浮窗。
-- 关闭控制面板会收起到系统托盘。双击托盘图标或再次双击桌面快捷方式可恢复面板。
-- 点控制面板或托盘菜单中的“退出”可彻底退出，不会后台继续刷新。不自动设置开机启动。
+无需安装 Python、Node 或 .NET SDK。需要桌面入口时，右键 `TokenMonitor.exe` 创建快捷方式并放到桌面即可。工具不会自动设置开机启动。
 
-## 数据口径
+## 配置两个服务
 
-**ChatGPT 页**读取本机 Codex 已登录账号的 **Codex / ChatGPT Work 订阅额度**，显示官方返回的时间窗口、剩余百分比、重置时间以及额外 credits。当前 Plus 账号返回 5 小时及每周窗口。百分比由官方已用百分比换算；不会用本机消息数或 API 单价估算订阅额度。重置时间统一显示北京时间。到达重置时间后等待官方返回新数据，不自行补满进度条。
+### GPT
 
-如果服务返回多个独立额度池，会分别显示。未返回的窗口、百分比与重置时间不会伪造。可用额度重置次数仅作展示，工具不会消耗重置权益。
+先在本机安装并登录 Codex。Token Monitor 自动查找 Codex 桌面应用附带的 CLI，或 `PATH` 中的 `codex.exe`，通过官方 app-server 查询登录账号的订阅额度。
 
-**DeepSeek 页**通过提供的 API Key 查询其关联账户余额：可用余额、充值余额、赠送余额及 API 是否可调用。人民币与美元余额分别显示，不做汇率换算。余额接口不返回全账户累计 Token、逐次调用明细或历史消费，所以窗口中的“官方用量”入口可打开 DeepSeek 后台进一步查看。余额减少不能准确等同于 Token 消耗，工具不据此估算 Token。
+如果只使用 DeepSeek，可关闭 GPT 开关。账号切换或登录过期后，请先在 Codex 完成登录，再重启 Token Monitor。
 
-数据默认每 30 秒轮询，可能存在服务端更新延迟。连接失败时保留并淡化上次成功的数据，同时标注“旧数据”和最后成功时间；首次连接失败显示原因。查询不会创建 GPT 或 DeepSeek 模型对话。
+### DeepSeek
 
-## 登录与密钥
+打开控制面板中的“设置”，填写你自己的 DeepSeek API Key 并保存。已有密钥时输入框留空可保留原值。
 
-- GPT 自动调用已安装的官方 Codex CLI，通过 `app-server` 的 `account/rateLimits/read` 获取额度。沿用本机 Codex 的正常登录机制，应用自身不读取或复制 OpenAI 登录令牌。请保持 Codex 已安装并登录所需账户；账号切换或登录失效后可重启本工具。
-- DeepSeek API Key 存放于 `data\deepseek.key`，由 Windows DPAPI 按当前 Windows 用户加密，未写入程序源码或日志。该文件只能由同一 Windows 用户环境解密；迁移到另一账户或电脑时请重新填写密钥。
-- 在“设置”内可更换 DeepSeek API Key；输入留空保留原密钥。程序只向固定的 `https://api.deepseek.com/user/balance` 地址发送该密钥，并拒绝自动跟随重定向。
-- `data\settings.json` 只保存显示开关、位置及刷新间隔。程序不记录原始 API 响应或密钥日志。
+密钥使用 Windows DPAPI 按当前用户加密，存放在程序目录的 `data/deepseek.key`。换电脑或 Windows 用户时需重新填写，不要把该文件分享给其他人。
 
-## 文件与维护
+## 日常操作
 
-- `TokenMonitor.exe`：主程序，无命令行窗口。
-- `TokenMonitor.ico`：自制图标。
-- `TokenMonitor.exe.config`：.NET Framework 4.8 运行配置。
-- `source\`：完整 C# / WPF 源码及构建脚本，运行程序无需 Python、Node 或 .NET SDK。
-- `data\`：本机偏好与加密密钥。
+- **显示开关**：ChatGPT、DeepSeek 分别控制各自的悬浮窗；隐藏后暂停对应服务的定时刷新。
+- **移动**：拖动窗口顶部。窗口位置、开关状态与刷新间隔自动保存。
+- **刷新**：默认 30 秒，可选择 15 / 30 / 60 / 120 秒；“立即刷新”可手动查询。
+- **收起**：关闭控制面板会收起到托盘；双击托盘图标或再次启动程序可恢复。
+- **隐藏浮窗**：点击浮窗右上角关闭按钮，只隐藏对应窗口。
+- **退出**：从控制面板或托盘菜单点击“退出”，停止后台刷新。
 
-需 Windows 10/11 的 .NET Framework 4.8，以及已安装并登录的 Codex。构建使用系统自带的 C# 编译器。图标源生成脚本需要 Python/Pillow，但重新运行或使用主程序不需要它。
+## 数据说明
 
-卸载前请通过托盘退出，再删除安装目录与桌面快捷方式。删除 `data` 会同时删除本工具保存的配置和加密密钥，不影响 Codex 登录。
+### GPT：Codex / ChatGPT Work 订阅额度
 
-## 官方资料
+显示官方返回的时间窗口、剩余比例、北京时间重置时间、额外 credits 等。常见窗口为 5 小时和每周，实际以当前账号的接口返回为准。
 
-- [OpenAI：Codex App Server 账号与额度接口](https://learn.chatgpt.com/docs/app-server)
-- [OpenAI：ChatGPT Work / Codex 订阅用量口径](https://learn.chatgpt.com/docs/pricing)
-- [DeepSeek：查询账户余额接口](https://api-docs.deepseek.com/api/get-user-balance/)
+这些数据不代表 ChatGPT 普通聊天所有模型的消息限制，也不按 OpenAI API 单价估算。未返回的窗口、比例和重置时间不会被伪造；到达重置时间后等待官方刷新数据，不自动把进度条补满。额度重置权益的次数仅供展示，工具不会使用该权益。
 
-版本：1.0.0 · 2026-10-07
+### DeepSeek：API 账户余额
+
+显示可用余额、充值余额、赠送余额，以及是否可调用 API。人民币和美元分别显示，不换算或相加。
+
+余额接口不提供全账户累计 Token 或历史消费明细；请点击“官方用量”查看后台。工具不会通过余额差额估算 Token 数。
+
+## 异常状态
+
+| 提示 | 处理方法 |
+| --- | --- |
+| 未找到 Codex / 登录失败 | 安装 Codex，完成登录后重启工具 |
+| DeepSeek 密钥无效或无权访问 | 在“设置”中更新自己的 API Key |
+| 无法解密密钥 | 在当前 Windows 用户下重新保存 API Key |
+| 网络失败或超时 | 检查网络，等待自动重试或手动刷新 |
+| 查询频率受限 | 等待工具按服务端要求重试 |
+
+连接失败时保留并淡化旧数据，标注最后成功时间。首次获取失败显示错误，不把未知值当作零。默认定时轮询，可能存在服务端更新延迟。
+
+## 文件与卸载
+
+`TokenMonitor.exe`、`TokenMonitor.exe.config`、`TokenMonitor.ico` 是运行文件。`data/` 是运行后生成的本机密钥与偏好。下载包还附带通用说明及许可证。
+
+卸载前先从托盘退出，再删除程序目录与快捷方式。删除 `data/` 会清除本工具保存的配置，不影响 Codex 的登录。
+
+## 参考资料
+
+- [OpenAI：Codex App Server](https://learn.chatgpt.com/docs/app-server)
+- [OpenAI：订阅用量](https://learn.chatgpt.com/docs/pricing)
+- [DeepSeek：余额接口](https://api-docs.deepseek.com/api/get-user-balance/)
+
+版本：1.0.0

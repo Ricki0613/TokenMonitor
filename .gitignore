@@ -1,6 +1,9 @@
 # Local account data: never commit, including encrypted credentials.
 data/
 credentials/
+local-docs/
+backups/
+release-packages/
 *.key
 *.pem
 *.pfx
