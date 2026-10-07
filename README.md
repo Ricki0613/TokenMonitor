@@ -6,10 +6,10 @@
 
 A lightweight Windows floating usage monitor for Codex / ChatGPT Work and DeepSeek. Built with C# and WPF.
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.0.0-windows-x64.zip) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [反馈问题](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.1.0-windows-x64.zip) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [反馈问题](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-1.0.0-10A37F)
+![Version](https://img.shields.io/badge/version-1.1.0-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 一眼看清两种用量
@@ -21,7 +21,9 @@ A lightweight Windows floating usage monitor for Codex / ChatGPT Work and DeepSe
 | 北京时间重置时间与倒计时 | 人民币、美元分别显示 |
 | 额外 credits 与其他官方额度池 | 余额是否支持继续调用 API |
 
-两个窗口各自有显示开关，可以拖动、置顶、收起到托盘，并记住位置。默认每 **30 秒**刷新，可选 15 / 30 / 60 / 120 秒，也能随时手动刷新。网络异常时会标记旧数据与最后成功时间。
+两个窗口各自有显示开关，可以拖动、缩放、置顶、收起到托盘，并记住位置与尺寸。卡片随宽度重排，字号保持不变；默认高度紧贴内容，点击顶部 **↕** 可恢复贴合高度。设置支持 **浅色 / 深色 / 随系统**。默认每 **30 秒**刷新，可选 15 / 30 / 60 / 120 秒，也能随时手动刷新。网络异常时会标记旧数据与最后成功时间。
+
+ChatGPT 浮窗新增 **重置额度**：显示官方剩余次数，确认后使用账户的一次重置权益，与 GPT 内使用重置次数相同。结果不确定时可安全重试，避免重复扣次数。
 
 ## 三步开始
 
@@ -50,9 +52,10 @@ git clone https://github.com/Ricki0613/TokenMonitor.git
 cd TokenMonitor
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-输出位于 `build\`。脚本使用 .NET Framework C# 编译器；12 项离线自测无需真实账户或 API Key，不请求 GPT / DeepSeek 服务。
+输出位于 `build\`。脚本使用 .NET Framework C# 编译器；21 项离线自测与 35 项界面检查使用模拟数据，无需真实账户或 API Key，不请求 GPT / DeepSeek 服务、不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
 
 | 目录 | 内容 |
 | --- | --- |

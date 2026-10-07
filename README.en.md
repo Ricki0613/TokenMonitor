@@ -4,11 +4,14 @@
 
 **Keep Codex / ChatGPT Work usage limits and your DeepSeek API balance visible on your Windows desktop.**
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.0.0-windows-x64.zip) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.1.0-windows-x64.zip) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
 
 ## Features
 
-- Two independent, draggable, always-on-top windows with separate visibility switches.
+- Two independent, draggable, resizable, always-on-top windows with separate visibility switches.
+- Cards reflow without shrinking text. Default height fits content; the ↕ button restores that height.
+- Light, dark and system appearance, with saved window sizes and automatic system-theme updates.
+- Redeem an official GPT quota-reset credit after confirmation, with retries that avoid duplicate redemption.
 - Codex / ChatGPT Work remaining quota, official time windows, reset times and credits.
 - DeepSeek available, topped-up and granted balances, displayed separately for each currency.
 - Refresh every 15, 30, 60 or 120 seconds, or refresh manually.
@@ -31,9 +34,10 @@ The GPT window reports **Codex / ChatGPT Work subscription quotas**, not every C
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-Output: `build/`. The 12 offline self-tests require no real accounts or API keys. Runtime data and credentials are excluded from Git.
+Output: `build/`. The 21 offline self-tests and 35 UI checks use mock data, require no real accounts or API keys, and never consume reset credits. UI screenshots are written to `build/ui-test-*/`. Runtime data and credentials are excluded from Git.
 
 The release is unsigned. Automatic startup and automatic updates are not implemented. Service-side updates or API changes may affect availability.
 

@@ -46,7 +46,7 @@ namespace TokenMonitor {
             }
             if(result.Groups.Count==0) throw new InvalidDataException("官方尚未返回额度数据");
             var resetCount=Json.Number(Json.Child(obj,"rateLimitResetCredits"),"availableCount");
-            if(resetCount.HasValue && resetCount>=0 && resetCount<=int.MaxValue) result.ResetCredits=(int)resetCount.Value;
+            if(resetCount.HasValue && resetCount>=0 && resetCount<=int.MaxValue && resetCount==Math.Truncate(resetCount.Value)) result.ResetCredits=(int)resetCount.Value;
             return result;
         }
         static QuotaGroup ParseGroup(Dictionary<string,object> obj,string id) {
@@ -102,12 +102,34 @@ namespace TokenMonitor {
     public class Preferences {
         public bool Gpt=true, Deep=true;
         public int Interval=30;
+        public string Appearance="system", PendingResetKey;
+        public double GptWidth=368,GptHeight=500,DeepWidth=368,DeepHeight=445;
+        public bool GptAutoHeight=true,DeepAutoHeight=true;
         public double GptX=-1,GptY=-1,DeepX=-1,DeepY=-1,MainX=-1,MainY=-1;
         public static Preferences Load() {
-            try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences)); p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;return p; }
+            try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences));
+                if(p==null)return new Preferences();
+                p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;
+                if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";
+                p.GptWidth=Size(p.GptWidth,300,1600,368);p.DeepWidth=Size(p.DeepWidth,300,1600,368);
+                p.GptHeight=Size(p.GptHeight,210,1600,500);p.DeepHeight=Size(p.DeepHeight,210,1600,445);
+                Guid key;if(!Guid.TryParse(p.PendingResetKey,out key))p.PendingResetKey=null;
+                return p; }
             catch { return new Preferences(); }
         }
+        static double Size(double value,double min,double max,double fallback) {return double.IsNaN(value)||double.IsInfinity(value)||value<min?fallback:Math.Min(max,value);}
         public void Save() { Directory.CreateDirectory(Paths.Data); Atomic.Write(Paths.Preferences,Encoding.UTF8.GetBytes(Json.Write(this))); }
+    }
+    public sealed class ResetResult {
+        public readonly string Outcome;
+        public bool Success {get {return Outcome=="reset"||Outcome=="alreadyRedeemed";}}
+        ResetResult(string outcome) {Outcome=outcome;}
+        public static ResetResult Parse(Dictionary<string,object> data) {
+            var outcome=Json.Str(data,"outcome");
+            if(!new[]{"reset","alreadyRedeemed","nothingToReset","noCredit"}.Contains(outcome))
+                throw new ProviderException("重置结果未知，请重试确认上次结果");
+            return new ResetResult(outcome);
+        }
     }
     public static class Paths {
         public static string Root=AppDomain.CurrentDomain.BaseDirectory;

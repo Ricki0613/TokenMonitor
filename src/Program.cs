@@ -11,7 +11,13 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Threading;
+using Microsoft.Win32;
+using System.Reflection;
 using Forms=System.Windows.Forms;
+
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1.0")]
 
 namespace TokenMonitor {
     public sealed class MonitorApp : Application {
@@ -28,23 +34,32 @@ namespace TokenMonitor {
         DateTimeOffset gptCooldown=DateTimeOffset.MinValue,deepCooldown=DateTimeOffset.MinValue;
         int gptFailures,deepFailures;
         DispatcherTimer timer;
+        DispatcherTimer saveTimer;
         Forms.NotifyIcon tray;
         readonly bool smoke;
         readonly string smokeFolder;
-        public MonitorApp(string folder) {smoke=folder!=null;smokeFolder=folder;}
+        readonly bool offline;
+        public MonitorApp(string folder,bool offline=false) {smoke=folder!=null;smokeFolder=folder;this.offline=offline;}
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);ShutdownMode=ShutdownMode.OnExplicitShutdown;
             using(var stream=typeof(MonitorApp).Assembly.GetManifestResourceStream("TokenMonitor.Theme.xaml")) Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
             Prefs=smoke?new Preferences():Preferences.Load();
+            Appearance.Apply(Prefs.Appearance);
+            if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
             Gpt=new UsageView(this,true);Deep=new UsageView(this,false);
+            Gpt.RestoreSize(Prefs.GptWidth,Prefs.GptHeight,Prefs.GptAutoHeight);Deep.RestoreSize(Prefs.DeepWidth,Prefs.DeepHeight,Prefs.DeepAutoHeight);
+            Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();
             var area=SystemParameters.WorkArea;
             Main.Place(Prefs.MainX,Prefs.MainY,area.Left+40,area.Top+65);
             Gpt.Place(Prefs.GptX,Prefs.GptY,Math.Max(area.Left,area.Right-390),area.Top+30);
             bool stack=area.Height>=Gpt.Height+Deep.Height+50;
             Deep.Place(Prefs.DeepX,Prefs.DeepY,Math.Max(area.Left,area.Right-390-(stack?0:370)),stack?area.Top+Gpt.Height+35:area.Top+30);
             Main.Show();if(Prefs.Gpt)Gpt.Show();if(Prefs.Deep)Deep.Show();
-            Main.LocationChanged+=(s,a)=>Save();Gpt.LocationChanged+=(s,a)=>Save();Deep.LocationChanged+=(s,a)=>Save();
+            saveTimer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(400)};
+            saveTimer.Tick+=(s,a)=>{saveTimer.Stop();Save();};
+            Main.LocationChanged+=(s,a)=>QueueSave();Gpt.LocationChanged+=(s,a)=>QueueSave();Deep.LocationChanged+=(s,a)=>QueueSave();
+            Gpt.GeometryChanged+=QueueSave;Deep.GeometryChanged+=QueueSave;
             if(!smoke)MakeTray();
             timer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(1)};
             timer.Tick+=async(s,a)=>{
@@ -58,6 +73,11 @@ namespace TokenMonitor {
                 if(smoke)await RunSmoke();
             }),DispatcherPriority.ApplicationIdle);
         }
+        void SystemAppearanceChanged(object sender,UserPreferenceChangedEventArgs e) {
+            if(quitting||Prefs.Appearance!="system")return;
+            Dispatcher.BeginInvoke(new Action(()=>{if(!quitting&&Prefs.Appearance=="system")Appearance.Apply("system");}));
+        }
+        void QueueSave() {if(smoke||quitting||saveTimer==null)return;saveTimer.Stop();saveTimer.Start();}
         void MakeTray() {
             var menu=new Forms.ContextMenuStrip();
             menu.Items.Add("打开控制面板",null,(s,e)=>Dispatcher.Invoke(new Action(ShowControl)));
@@ -95,15 +115,41 @@ namespace TokenMonitor {
             var now=DateTimeOffset.UtcNow;
             if(quitting||gptBusy||!Prefs.Gpt||now<gptCooldown||(!force&&now<nextGpt))return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
-            try {GptData=await codex.Fetch();GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {GptData=offline?SampleGpt():await codex.Fetch();GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {GptError=ErrorMessage(e,true);gptFailures++;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,gptFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)gptCooldown=nextGpt;}
             finally {gptBusy=false;if(!quitting){Gpt.Render(GptData,GptError,false);UpdateLabels();}}
+        }
+        public async Task ResetGptQuota() {
+            if(offline||quitting||gptBusy||!Prefs.Gpt)return;
+            gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
+            string message=null;
+            try {
+                bool retry=!string.IsNullOrEmpty(Prefs.PendingResetKey);
+                if(!retry) {
+                    GptData=await codex.Fetch();GptError=null;
+                    if(GptData.ResetCredits.GetValueOrDefault()<=0) {message="当前没有可用的额度重置次数。";return;}
+                }
+                string prompt=retry?"确认上次额度重置的结果？\n将复用原请求，避免重复使用重置次数。":
+                    "将使用当前 ChatGPT / Codex 账户的 1 次额度重置权益。\n这与在 GPT 中使用重置次数相同，是否继续？";
+                if(MessageBox.Show(Gpt,prompt,"额度重置",MessageBoxButton.OKCancel,MessageBoxImage.Question,MessageBoxResult.Cancel)!=MessageBoxResult.OK)return;
+                var result=await new ResetRedemption(Prefs,codex.ConsumeReset).Redeem();
+                message=result.Success?"额度重置已确认。":result.Outcome=="noCredit"?"官方返回：没有可用的重置次数。":"官方返回：当前没有可重置的额度窗口。";
+                try {GptData=await codex.Fetch();GptError=null;gptCooldown=DateTimeOffset.MinValue;gptFailures=0;}
+                catch(Exception e) {GptError=ErrorMessage(e,true);message+="\n最新额度暂未同步，请稍后刷新。";}
+                nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);
+            } catch(Exception e) {
+                GptError=ErrorMessage(e,true);
+                message="未能确认额度重置结果："+GptError+(string.IsNullOrEmpty(Prefs.PendingResetKey)?"":"\n点击“确认上次重置”可安全重试。");
+            } finally {
+                gptBusy=false;
+                if(!quitting){Gpt.Render(GptData,GptError,false);UpdateLabels();if(message!=null)MessageBox.Show(message,"额度重置",MessageBoxButton.OK,MessageBoxImage.Information);}
+            }
         }
         public async Task RefreshDeep(bool force) {
             var now=DateTimeOffset.UtcNow;
             if(quitting||deepBusy||!Prefs.Deep||now<deepCooldown||(!force&&now<nextDeep))return;
             deepBusy=true;Deep.UpdateStatus(DeepData,DeepError,true);
-            try {DeepData=await deep.Fetch();DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {DeepData=offline?SampleDeep():await deep.Fetch();DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {DeepError=ErrorMessage(e,false);deepFailures++;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,deepFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)deepCooldown=nextDeep;}
             finally {deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
         }
@@ -121,11 +167,14 @@ namespace TokenMonitor {
         public void Save() {
             if(smoke||quitting||Main==null||Gpt==null||Deep==null)return;
             Prefs.MainX=Main.Left;Prefs.MainY=Main.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
+            Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
+            Prefs.DeepWidth=Deep.Width;Prefs.DeepHeight=Deep.Height;Prefs.DeepAutoHeight=Deep.AutoHeight;
             try {Prefs.Save();}catch {Main.Subtitle.Text="位置保存失败，请检查目录权限";}
         }
         public void Quit() {
             if(quitting)return;Save();quitting=true;
-            if(timer!=null)timer.Stop();if(tray!=null){tray.Visible=false;tray.Dispose();}
+            if(timer!=null)timer.Stop();if(saveTimer!=null)saveTimer.Stop();if(!smoke)SystemEvents.UserPreferenceChanged-=SystemAppearanceChanged;
+            if(tray!=null){tray.Visible=false;tray.Dispose();}
             codex.Dispose();deep.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=true;Shutdown();
         }
         async Task RunSmoke() {
@@ -150,8 +199,47 @@ namespace TokenMonitor {
                 Gpt.Render(GptData,"网络连接失败，稍后自动重试",false);Gpt.UpdateLayout();UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-stale.png"));
             }
             var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));settings.Exiting=true;settings.Close();
+            if(offline) {
+                Gpt.Render(GptData,null,false);Main.FitToContent();Gpt.FitToContent();Deep.FitToContent();
+                foreach(string theme in new[]{"light","dark","system"}) {
+                    Appearance.Apply(theme);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+                    Main.UpdateLayout();Gpt.UpdateLayout();Deep.UpdateLayout();
+                    UI.SaveImage(Main,Path.Combine(smokeFolder,"control-"+theme+".png"));
+                    UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-"+theme+".png"));
+                    UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+theme+".png"));
+                    var dialog=new SettingsView(this){Owner=Main};dialog.Show();dialog.FitToContent();dialog.UpdateLayout();UI.SaveImage(dialog,Path.Combine(smokeFolder,"settings-"+theme+".png"));dialog.Exiting=true;dialog.Close();
+                    checks[theme+"_ink_updates"]=((System.Windows.Media.SolidColorBrush)Main.GptInfo.Foreground).Color==((System.Windows.Media.SolidColorBrush)Resources["MutedBrush"]).Color;
+                }
+                Appearance.Apply("light");
+                foreach(double width in new[]{300.0,368.0,660.0,940.0}) {
+                    Gpt.Width=width;Deep.Width=width;Gpt.FitToContent();Deep.FitToContent();
+                    await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();Deep.UpdateLayout();
+                    UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-"+width+".png"));UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+width+".png"));
+                    checks["gpt_fits_"+width]=Gpt.Scroll.ExtentHeight<=Gpt.Scroll.ViewportHeight+1;
+                    checks["deep_fits_"+width]=Deep.Scroll.ExtentHeight<=Deep.Scroll.ViewportHeight+1;
+                    checks["gpt_bottom_gap_"+width]=Math.Abs(Gpt.Scroll.ViewportHeight-Gpt.Scroll.ExtentHeight)<2;
+                }
+                Gpt.Width=300;Gpt.ResizeBy(0,1,0,-1000);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();
+                checks["short_window_scrolls"]=Gpt.Scroll.ExtentHeight>Gpt.Scroll.ViewportHeight;
+                checks["resize_keeps_minimum"]=Gpt.Height==Gpt.MinHeight&&!Gpt.AutoHeight;
+                UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-short.png"));Gpt.FitToContent();
+                checks["fit_restores_auto_height"]=Gpt.AutoHeight;
+                var original=GptData.ResetCredits;GptData.ResetCredits=0;Gpt.Render(GptData,null,false);checks["reset_disabled_without_credit"]=!Gpt.ResetQuota.IsEnabled;
+                GptData.ResetCredits=null;Gpt.Render(GptData,null,false);checks["reset_disabled_when_unknown"]=!Gpt.ResetQuota.IsEnabled;
+                GptData.ResetCredits=original;Gpt.Render(GptData,null,false);checks["reset_enabled_with_credit"]=Gpt.ResetQuota.IsEnabled;
+                Gpt.UpdateStatus(GptData,null,true);checks["reset_disabled_while_busy"]=!Gpt.ResetQuota.IsEnabled;
+                Gpt.Render(GptData,"模拟连接失败",false);checks["reset_disabled_on_stale_data"]=!Gpt.ResetQuota.IsEnabled;
+                Prefs.PendingResetKey=Guid.NewGuid().ToString();Gpt.Render(GptData,"模拟连接失败",false);checks["uncertain_reset_can_retry"]=Gpt.ResetQuota.IsEnabled;
+                Prefs.PendingResetKey=null;Gpt.Render(null,"模拟首次连接失败",false);Gpt.FitToContent();await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-empty.png"));
+                checks["no_live_queries_or_reset"]=true;
+            }
             File.WriteAllText(Path.Combine(smokeFolder,"smoke.json"),Json.Write(checks));Quit();
         }
+        static GptSnapshot SampleGpt() {
+            var data=GptSnapshot.Parse(Json.Read("{\"rateLimits\":{\"planType\":\"plus\",\"primary\":{\"usedPercent\":28,\"windowDurationMins\":300},\"secondary\":{\"usedPercent\":61,\"windowDurationMins\":10080}},\"rateLimitResetCredits\":{\"availableCount\":2}}"));
+            data.Groups[0].Windows[0].Reset=DateTimeOffset.UtcNow.AddHours(3);data.Groups[0].Windows[1].Reset=DateTimeOffset.UtcNow.AddDays(4);return data;
+        }
+        static DeepSnapshot SampleDeep() {return DeepSnapshot.Parse(Json.Read("{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"51.7801\",\"granted_balance\":\"1.00\",\"topped_up_balance\":\"50.7801\"},{\"currency\":\"USD\",\"total_balance\":\"0.10\",\"granted_balance\":\"0\",\"topped_up_balance\":\"0.10\"}]}"));}
     }
     public static class Program {
         const string MutexName="Local\\TokenMonitor.Ricki.v1";
@@ -161,6 +249,7 @@ namespace TokenMonitor {
         public static int Main(string[] args) {
             if(args.Length>0&&args[0]=="--self-test") return SelfTests.Run(args.Length>1?args[1]:Path.Combine(Paths.Root,"self-test.json"));
             if(args.Length>0&&args[0]=="--diagnose") return Diagnose(args.Length>1?args[1]:Path.Combine(Paths.Root,"diagnose.json")).GetAwaiter().GetResult();
+            if(args.Length>1&&args[0]=="--ui-test") {new MonitorApp(args[1],true).Run();return 0;}
             bool fresh;using(var mutex=new Mutex(true,MutexName,out fresh)) {
                 if(!fresh) {
                     // Use a named event instead of window titles: it also works when the control panel is hidden.

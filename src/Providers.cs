@@ -21,7 +21,7 @@ namespace TokenMonitor {
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
             http=new HttpClient(new HttpClientHandler { AllowAutoRedirect=false });
             http.Timeout=TimeSpan.FromSeconds(20);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/1.0");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/1.1.0");
         }
         public async Task<DeepSnapshot> Fetch() {
             string key=SecretStore.Read();
@@ -81,7 +81,7 @@ namespace TokenMonitor {
                 if(!p.Start()) throw new ProviderException("无法启动 Codex 用量连接");
                 process=p;p.BeginErrorReadLine();
                 Task.Run(()=>ReadLoop(p));
-                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="1.0.0" } }).ConfigureAwait(false);
+                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="1.1.0" } }).ConfigureAwait(false);
                 Send(new { method="initialized",@params=new {} });
             } catch { StopProcess();throw; } finally { startup.Release(); }
         }
@@ -117,6 +117,11 @@ namespace TokenMonitor {
                 var obj=await source.Task.ConfigureAwait(false);
                 if(Json.Get(obj,"error")!=null) {
                     string msg=Json.Str(Json.Child(obj,"error"),"message")??"";
+                    if(method=="account/rateLimitResetCredit/consume") {
+                        if(Json.Number(Json.Child(obj,"error"),"code")==-32601)
+                            throw new ProviderException("当前 Codex 版本不支持额度重置，请更新 Codex 后重试");
+                        throw new ProviderException("官方未确认重置结果，请重试确认上次结果");
+                    }
                     if(msg.IndexOf("auth",StringComparison.OrdinalIgnoreCase)>=0 || msg.IndexOf("login",StringComparison.OrdinalIgnoreCase)>=0 || msg.IndexOf("401",StringComparison.Ordinal)>=0)
                         throw new ProviderException("登录状态已过期，请先在 Codex 桌面应用中登录",120);
                     throw new ProviderException("官方用量查询失败，请确认 Codex 已登录后重试",60);
@@ -129,6 +134,13 @@ namespace TokenMonitor {
         public async Task<GptSnapshot> Fetch() {
             try { await Ensure().ConfigureAwait(false); return GptSnapshot.Parse(await Request("account/rateLimits/read",new {}).ConfigureAwait(false)); }
             catch { StopProcess();throw; }
+        }
+        public async Task<ResetResult> ConsumeReset(string idempotencyKey) {
+            Guid key;if(!Guid.TryParse(idempotencyKey,out key))throw new ArgumentException("Invalid reset request ID");
+            try {
+                await Ensure().ConfigureAwait(false);
+                return ResetResult.Parse(await Request("account/rateLimitResetCredit/consume",new { idempotencyKey=idempotencyKey }).ConfigureAwait(false));
+            } catch { StopProcess();throw; }
         }
         void StopProcess() {
             Process p;
