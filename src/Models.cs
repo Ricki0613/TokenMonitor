@@ -133,14 +133,23 @@ namespace TokenMonitor {
     }
     public static class Paths {
         public static string Root=AppDomain.CurrentDomain.BaseDirectory;
-        public static string Data { get { return Path.Combine(Root,"data"); } }
+        internal static string TestDataDirectory;
+        public static string Data { get {
+            if(TestDataDirectory!=null)return TestDataDirectory;
+            string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if(string.IsNullOrWhiteSpace(local))throw new IOException("Windows 用户数据目录不可用");
+            return Path.Combine(local,"TokenMonitor");
+        } }
         public static string Preferences { get { return Path.Combine(Data,"settings.json"); } }
         public static string Key { get { return Path.Combine(Data,"deepseek.key"); } }
     }
     public static class Atomic {
         public static void Write(string path,byte[] bytes) {
-            string temp=path+".tmp"; File.WriteAllBytes(temp,bytes);
-            if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
+            string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
+            try {
+                File.WriteAllBytes(temp,bytes);
+                if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
+            } finally {try {if(File.Exists(temp))File.Delete(temp);}catch {}}
         }
     }
     public static class SecretStore {
@@ -155,6 +164,10 @@ namespace TokenMonitor {
             if(!File.Exists(Paths.Key)) throw new InvalidOperationException("请先在设置中填写 DeepSeek API Key");
             byte[] plain=ProtectedData.Unprotect(File.ReadAllBytes(Paths.Key),Entropy,DataProtectionScope.CurrentUser);
             try { return Encoding.UTF8.GetString(plain); } finally { Array.Clear(plain,0,plain.Length); }
+        }
+        internal static void ValidateEncrypted(byte[] encrypted) {
+            byte[] plain=ProtectedData.Unprotect(encrypted,Entropy,DataProtectionScope.CurrentUser);
+            try {if(plain.Length==0)throw new CryptographicException();}finally {Array.Clear(plain,0,plain.Length);}
         }
     }
 }

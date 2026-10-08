@@ -6,11 +6,21 @@
 
 A lightweight Windows floating usage monitor for Codex / ChatGPT Work and DeepSeek. Built with C# and WPF.
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.1.0-windows-x64.zip) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [反馈问题](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v1.1.1/TokenMonitor-v1.1.1-windows-x64.zip) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-1.1.0-10A37F)
+![Version](https://img.shields.io/badge/version-1.1.1-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+
+## 最近更新
+
+| 版本 | 日期 | 主要变化 |
+| --- | --- | --- |
+| [v1.1.1](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.1) | 2026-10-08 | 修复自选安装目录下保存 Key 的权限问题；配置改存当前用户目录，自动迁移旧配置；新增安装助手、准确错误提示与安装排错说明 |
+| [v1.1.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.0) | 2026-10-07 | 浮窗缩放与卡片重排、浅色/深色/随系统、官方 GPT 额度重置、紧凑高度 |
+| [v1.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.0.0) | 2026-10-07 | 首版 GPT 额度与 DeepSeek 余额双浮窗、定时刷新、托盘和加密密钥 |
+
+[完整更新记录](CHANGELOG.md) · [全部发布版本](https://github.com/Ricki0613/TokenMonitor/releases)
 
 ## 一眼看清两种用量
 
@@ -25,11 +35,18 @@ A lightweight Windows floating usage monitor for Codex / ChatGPT Work and DeepSe
 
 ChatGPT 浮窗新增 **重置额度**：显示官方剩余次数，确认后使用账户的一次重置权益，与 GPT 内使用重置次数相同。结果不确定时可安全重试，避免重复扣次数。
 
-## 三步开始
+## 下载、安装与首次使用
 
-1. **下载并解压**：[Windows x64 程序包](https://github.com/Ricki0613/TokenMonitor/releases/latest/download/TokenMonitor-v1.0.0-windows-x64.zip)。放在一个固定、可写的目录，然后双击 `TokenMonitor.exe`。无需编译。
-2. **连接账户**：GPT 沿用本机已经安装并登录的 Codex；DeepSeek 在工具的“设置”中填写自己的 API Key。
-3. **打开需要的悬浮窗**：使用控制面板上的两个开关。关闭控制面板会收起到托盘，双击托盘图标可恢复。
+1. **下载运行包**：[TokenMonitor-v1.1.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v1.1.1/TokenMonitor-v1.1.1-windows-x64.zip)，右键 → **全部解压**。
+2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或输入自选完整路径。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
+3. **连接账户**：DeepSeek 在“设置”中填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。只用其中一个服务时，关闭另一个开关即可。
+4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。
+
+**正常运行和保存 Key 不需要管理员权限。** 安装位置可自选；配置会自动保存到 `%LOCALAPPDATA%\TokenMonitor`，安装包无需包含 `data` 文件夹。将运行文件复制到受保护目录时，Windows 可能要求一次文件操作授权。
+
+**升级旧版**：先从托盘退出，将新文件覆盖到原目录并保留旧 `data`，正常启动后自动迁移可用配置。已有新版用户配置优先，旧文件保留。迁移完成后可再换安装位置。
+
+遇到保存失败、加密失败或缺少运行环境时，按 [安装与排错说明](docs/START_HERE.zh-CN.md) 操作。设置页可查看数据目录及具体错误代码。
 
 **系统要求**：Windows 10 / 11 x64、.NET Framework 4.8。监控 GPT 时需要安装并登录 Codex。运行主程序不需要 Python、Node 或 .NET SDK。
 
@@ -55,17 +72,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-输出位于 `build\`。脚本使用 .NET Framework C# 编译器；21 项离线自测与 35 项界面检查使用模拟数据，无需真实账户或 API Key，不请求 GPT / DeepSeek 服务、不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
+输出位于 `build\`。脚本使用 .NET Framework C# 编译器；30 项离线自测与 35 项界面检查使用模拟数据，包括禁止向程序目录写入时保存密钥、旧配置迁移和准确错误提示。无需真实账户或 API Key，不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
+
+发布包使用 `scripts/package.ps1` 生成；`scripts/test-package.ps1 -Archive <ZIP路径>` 执行 6 项安装检查，包括自选中文/空格路径、快捷方式、原地覆盖升级和损坏文件拦截。
 
 | 目录 | 内容 |
 | --- | --- |
 | `src/` | C# / WPF 源码 |
 | `assets/` | 程序图标 |
 | `scripts/` | 构建、自测与图标生成脚本 |
+| `installer/` | 普通用户安装助手与快捷方式创建 |
 | `docs/` | 通用使用指南与发布说明 |
 | `.github/` | Issue / Pull Request 模板 |
 
-运行时的 `data/`、密钥、偏好与构建产物不纳入版本控制。
+用户目录中的配置、密钥、旧版 `data/` 与构建产物不纳入版本控制。
 
 ## 参与贡献
 

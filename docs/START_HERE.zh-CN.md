@@ -1,0 +1,51 @@
+# Token Monitor v1.1.1：先读我
+
+## 第一次安装（推荐）
+
+1. 从 GitHub Releases 下载 **TokenMonitor-v1.1.1-windows-x64.zip**。`Source code` 是源码，不是运行包。
+2. 右键 ZIP → **全部解压**。打开解压后的文件夹。
+3. 双击 **Install.cmd**。按 Enter 使用默认安装位置，也可输入自己选择的完整路径，如 `D:\Apps\TokenMonitor`。
+4. 安装助手复制运行文件、创建桌面和开始菜单快捷方式，并打开程序。之后用 **Token Monitor** 快捷方式启动。
+5. 只用 DeepSeek：在“设置”填入自己的 API Key，保存后看 DeepSeek 浮窗；可关闭 ChatGPT 开关。使用 GPT：先安装并登录 Codex，再打开 ChatGPT 开关。
+
+默认安装到 `%LOCALAPPDATA%\Programs\TokenMonitor`，不需要管理员权限。不需要 Python、Node、Git 或编译环境。安装助手使用 Windows 自带 PowerShell；如果脚本被单位策略禁用，可使用下面的直接运行方式。
+
+## 自选位置直接运行
+
+将整个 ZIP 解压到自己选择的位置，直接双击 **TokenMonitor.exe** 即可。`TokenMonitor.exe.config`、`TokenMonitor.ico` 应与主程序放在同一个文件夹。移动程序时一起移动这三个文件。
+
+程序可位于其他磁盘或受保护目录；复制文件到受保护目录时 Windows 可能要求授权，但正常运行和保存 Key 不需要管理员权限。不要只从压缩包里双击主程序。
+
+## 配置和密钥保存在哪里
+
+v1.1.1 自动创建 **`%LOCALAPPDATA%\TokenMonitor`**，将设置和加密密钥保存在这里。安装包不需要携带 `data` 文件夹。可从“设置 → 打开数据目录”查看。
+
+换安装位置不会丢失当前 Windows 用户的配置。换电脑或 Windows 用户时，请重新输入自己的 Key。
+
+## 从 v1.0.0 / v1.1.0 升级
+
+1. 从旧程序的托盘菜单选择 **退出**。
+2. 将新 ZIP 完整解压到原程序文件夹并覆盖运行文件，**保留旧 `data` 文件夹**。也可以在安装助手中选择原安装目录。
+3. 以平常使用的 Windows 用户启动一次。旧 `data` 中的设置和可解密密钥会自动复制到用户数据目录；旧文件保留，已有新版配置优先。
+4. 若要换安装位置，完成上一步迁移后再移动程序或运行安装助手。
+
+以前设置过“始终以管理员身份运行”的，请在主程序和快捷方式的属性中取消该选项后正常启动。如果以前用另一个管理员账户保存 Key，新版会提示重新输入。
+
+## 无法启动或保存时
+
+| 现象 | 处理 |
+| --- | --- |
+| 找不到主程序、图标或配置文件 | 确认下载的是 Windows ZIP，并已完整解压 |
+| 提示缺少 .NET Framework | 安装微软 [.NET Framework 4.8 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)，然后重新启动工具 |
+| Windows 提示未知发布者 | 当前版本未签名。核对来自项目官方 Release 及校验文件，再根据自己的设备策略决定是否运行 |
+| 安装助手无法写入目标目录 | 重新运行并选择有写入权限的安装位置；也可直接运行完整解压的程序 |
+| 用户数据访问被拒绝 | 打开设置查看数据目录，检查该目录权限及安全软件的拦截记录 |
+| Windows 用户加密失败 | 使用自己的 Windows 账户正常登录；若旧密钥无法解密，重新输入 Key |
+| 无法读写用户数据 | 检查磁盘空间、文件占用，记录界面上的操作名称和错误代码 |
+| Key 保存成功但余额查询报错 | 按浮窗提示检查 Key 是否有效、网络与账户余额权限 |
+
+仍无法解决时，在 GitHub 提交系统版本、程序版本、失败操作及错误代码。不要附带 Key 或 `deepseek.key`。
+
+系统要求：**Windows 10 / 11 x64、.NET Framework 4.8**。完整操作见同目录 `USER_GUIDE.zh-CN.md`。
+
+[项目首页](https://github.com/Ricki0613/TokenMonitor) · [反馈问题](https://github.com/Ricki0613/TokenMonitor/issues)

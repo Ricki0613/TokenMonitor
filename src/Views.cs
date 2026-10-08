@@ -152,7 +152,7 @@ namespace TokenMonitor {
         public readonly TextBlock GptInfo,DeepInfo;
         public readonly ComboBox Interval;
         public readonly Button Refresh;
-        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v1.1.0",UI.Green,410,398,false) {
+        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v1.1.1",UI.Green,410,398,false) {
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
             GptSwitch=new CheckBox { Style=(Style)Application.Current.FindResource("Switch"),IsChecked=app.Prefs.Gpt };
@@ -289,10 +289,20 @@ namespace TokenMonitor {
             AutomationProperties.SetName(input,"新的 DeepSeek API Key");Body.Children.Add(input);
             var hint=UI.Text(File.Exists(Paths.Key)?"已保存密钥。留空可保留原密钥。":"尚未设置密钥。",11,UI.Muted);hint.Margin=new Thickness(2,9,0,15);Body.Children.Add(hint);
             var info=UI.Text("密钥由 Windows 当前用户加密保存。GPT 自动使用本机 Codex 的登录账号。",12,UI.Muted);info.Margin=new Thickness(2,0,0,14);Body.Children.Add(info);
-            var message=UI.Text("",11,"#B77436");message.Visibility=Visibility.Collapsed;message.Margin=new Thickness(2,0,0,10);Body.Children.Add(message);
+            var storageLabel=UI.Text("用户数据目录（自动创建）",11,UI.Muted);storageLabel.Margin=new Thickness(2,0,0,5);Body.Children.Add(storageLabel);
+            var storagePath=new TextBox {Text=Paths.Data,IsReadOnly=true,TextWrapping=TextWrapping.Wrap,BorderThickness=new Thickness(0),Background=Brushes.Transparent,FontSize=11,Margin=new Thickness(2,0,0,8)};
+            Appearance.Paint(storagePath,TextBox.ForegroundProperty,UI.Muted);Body.Children.Add(storagePath);
+            var message=UI.Text(LocalStorage.Notice??"",11,"#B77436");message.Visibility=string.IsNullOrEmpty(LocalStorage.Notice)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);Body.Children.Add(message);
+            var folder=UI.Button("打开数据目录",()=>{try {Directory.CreateDirectory(Paths.Data);Process.Start(new ProcessStartInfo(Paths.Data){UseShellExecute=true});}catch(Exception e){message.Text=LocalStorage.Explain(e,"打开数据目录");message.Visibility=Visibility.Visible;} });folder.HorizontalAlignment=HorizontalAlignment.Left;folder.Margin=new Thickness(0,0,0,14);Body.Children.Add(folder);
             var save=UI.Button("保存",()=>{
-                try {if(input.Password.Length>0)SecretStore.Save(input.Password);input.Clear();app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.Save();Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();Exiting=true;Close();app.RefreshAll(true);}
-                catch(ArgumentException e){message.Text=e.Message;message.Visibility=Visibility.Visible;}catch{message.Text="保存失败，请检查安装目录的写入权限。";message.Visibility=Visibility.Visible;}
+                string operation="保存密钥",previous=app.Prefs.Appearance;
+                try {
+                    if(input.Password.Length>0)SecretStore.Save(input.Password);
+                    operation="保存设置";app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.Save();
+                } catch(Exception e) {
+                    app.Prefs.Appearance=previous;message.Text=e is ArgumentException?e.Message:LocalStorage.Explain(e,operation);message.Visibility=Visibility.Visible;return;
+                }
+                input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();Exiting=true;Close();app.RefreshAll(true);
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
             var cancel=UI.Button("取消",()=>{Exiting=true;Close();});Body.Children.Add(UI.Row(save,cancel));
             CloseAction=()=>{Exiting=true;Close();};WindowStartupLocation=WindowStartupLocation.CenterOwner;

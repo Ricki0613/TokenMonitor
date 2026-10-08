@@ -20,7 +20,10 @@ labels: bug
 - Token Monitor 版本：
 - Windows 版本：
 - GPT / DeepSeek 哪一页：
+- 安装方式（Install.cmd / 直接运行）、程序所在目录：
+- 是否已完整解压、是否以管理员身份运行：
+- 错误操作名称及错误代码（如有）：
 
 ## 补充信息
 
-可以附上去除账号、余额和个人信息的截图。请勿上传 API Key、`data` 目录或 Codex 登录文件。
+可以附上去除账号、余额和个人信息的截图。请勿上传 API Key、用户数据目录、旧 `data` 目录或 Codex 登录文件。

@@ -12,7 +12,7 @@
 
 1. Fork 仓库并创建描述清楚的分支，例如 `fix/window-position`。
 2. 完成一项范围明确的修改，保持使用说明与实际行为一致。
-3. 运行 `scripts/build.ps1` 和 `scripts/test.ps1`；涉及界面时运行 `scripts/test-ui.ps1` 并检查输出截图。
+3. 运行 `scripts/build.ps1` 和 `scripts/test.ps1`；涉及界面时运行 `scripts/test-ui.ps1` 并检查输出截图。发布包通过 `scripts/package.ps1` 生成后，用 `scripts/test-package.ps1 -Archive <ZIP路径>` 验证安装。
 4. 发起 Pull Request，说明解决的问题、修改后的行为和验证方式。关联已有 Issue（如有）。
 
 离线自测无需真实账户。不要把真实 API Key 放进测试或提交记录。
@@ -21,6 +21,7 @@
 
 - `src/Providers.cs`：官方服务连接。
 - `src/Models.cs`：数据解析、配置和密钥存储。
+- `src/LocalStorage.cs`：用户数据初始化、旧版配置迁移和保存错误说明。
 - `src/Views.cs`、`src/Theme.xaml`：WPF 界面。
 - `src/Appearance.cs`、`src/ResponsiveLayout.cs`：主题资源与卡片布局。
 - `src/ResetRedemption.cs`：持久化的额度重置与安全重试。

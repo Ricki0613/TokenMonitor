@@ -1,4 +1,4 @@
-param([string]$Version = '1.1.0', [string]$BuildPath, [string]$OutputPath)
+param([string]$Version = '1.1.1', [string]$BuildPath, [string]$OutputPath)
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be major.minor.patch.' }
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -14,6 +14,11 @@ foreach ($name in @('TokenMonitor.exe','TokenMonitor.exe.config','TokenMonitor.i
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\USER_GUIDE.zh-CN.md') -Destination (Join-Path $stage 'USER_GUIDE.zh-CN.md')
 Copy-Item -LiteralPath (Join-Path $repoRoot ('docs\RELEASE_v' + $Version + '.md')) -Destination (Join-Path $stage 'RELEASE_NOTES.zh-CN.md')
 Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\START_HERE.zh-CN.md') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repoRoot 'installer\Install.cmd') -Destination $stage
+# Windows PowerShell 5.1 needs a UTF-8 BOM for Chinese text in script files.
+$installer = [IO.File]::ReadAllText((Join-Path $repoRoot 'installer\Install.ps1'))
+[IO.File]::WriteAllText((Join-Path $stage 'Install.ps1'),$installer,[Text.UTF8Encoding]::new($true))
 $lines = @(Get-ChildItem -LiteralPath $stage -File | Sort-Object Name | ForEach-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + $_.Name })
 [IO.File]::WriteAllLines((Join-Path $stage 'SHA256SUMS.txt'),$lines,[Text.UTF8Encoding]::new($false))
 $archive = Join-Path $OutputPath ('TokenMonitor-v' + $Version + '-windows-x64.zip')

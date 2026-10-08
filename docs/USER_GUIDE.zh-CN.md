@@ -2,9 +2,11 @@
 
 ## 安装与启动
 
-1. 从 [最新发布页](https://github.com/Ricki0613/TokenMonitor/releases/latest) 下载 `TokenMonitor-v1.1.0-windows-x64.zip`。
-2. 解压到固定、可写的目录。请先解压，再运行其中的 `TokenMonitor.exe`。
-3. 确保系统为 Windows 10 / 11 x64，并有 .NET Framework 4.8。
+1. 从 [最新发布页](https://github.com/Ricki0613/TokenMonitor/releases/latest) 下载 `TokenMonitor-v1.1.1-windows-x64.zip`，选择“全部解压”。
+2. 双击 `Install.cmd`，按 Enter 接受默认位置，或输入自己的完整安装路径。助手创建桌面和开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
+3. 确保系统为 Windows 10 / 11 x64，并有 .NET Framework 4.8。详细安装和排错步骤见 [先读我](START_HERE.zh-CN.md)。
+
+正常运行、填写 Key 和保存设置不需要管理员权限。运行文件的位置可自选；复制到受保护目录时，Windows 可能要求文件操作授权。用户数据自动保存在 `%LOCALAPPDATA%\TokenMonitor`，无需在程序旁创建 `data`。
 
 无需安装 Python、Node 或 .NET SDK。需要桌面入口时，右键 `TokenMonitor.exe` 创建快捷方式并放到桌面即可。工具不会自动设置开机启动。
 
@@ -20,7 +22,7 @@
 
 打开控制面板中的“设置”，填写你自己的 DeepSeek API Key 并保存。已有密钥时输入框留空可保留原值。
 
-密钥使用 Windows DPAPI 按当前用户加密，存放在程序目录的 `data/deepseek.key`。换电脑或 Windows 用户时需重新填写，不要把该文件分享给其他人。
+密钥使用 Windows DPAPI 按当前用户加密，存放在 `%LOCALAPPDATA%\TokenMonitor\deepseek.key`。设置页显示实际数据目录，并提供“打开数据目录”。换电脑或 Windows 用户时需重新填写，不要把该文件分享给其他人。
 
 ## 日常操作
 
@@ -63,6 +65,9 @@ ChatGPT 浮窗的 **重置额度 (N)** 显示当前账号的官方剩余次数�
 | 未找到 Codex / 登录失败 | 安装 Codex，完成登录后重启工具 |
 | DeepSeek 密钥无效或无权访问 | 在“设置”中更新自己的 API Key |
 | 无法解密密钥 | 在当前 Windows 用户下重新保存 API Key |
+| 用户数据目录访问被拒绝 | 在设置中查看目录，检查该目录权限及安全软件的拦截记录 |
+| Windows 用户加密失败 | 使用平常的 Windows 账户正常登录后重试；旧密钥无法解密时重新输入 |
+| 无法读写用户数据 | 检查磁盘空间和文件占用；记录操作名称与错误代码用于反馈 |
 | 网络失败或超时 | 检查网络，等待自动重试或手动刷新 |
 | 查询频率受限 | 等待工具按服务端要求重试 |
 
@@ -70,9 +75,9 @@ ChatGPT 浮窗的 **重置额度 (N)** 显示当前账号的官方剩余次数�
 
 ## 文件与卸载
 
-`TokenMonitor.exe`、`TokenMonitor.exe.config`、`TokenMonitor.ico` 是运行文件。`data/` 是运行后生成的本机密钥与偏好。下载包还附带通用说明及许可证。
+`TokenMonitor.exe`、`TokenMonitor.exe.config`、`TokenMonitor.ico` 是运行文件。下载包还附带安装助手、安装与使用说明、许可证及校验清单。
 
-卸载前先从托盘退出，再删除程序目录与快捷方式。删除 `data/` 会清除本工具保存的配置，不影响 Codex 的登录。
+卸载前先从托盘退出，再删除程序目录、桌面及开始菜单中的 Token Monitor 快捷方式。如需清除账户配置，另行删除 `%LOCALAPPDATA%\TokenMonitor`；旧版 `data` 若保留也可一并清理。这不会影响 Codex 的登录。
 
 ## 参考资料
 
@@ -80,8 +85,10 @@ ChatGPT 浮窗的 **重置额度 (N)** 显示当前账号的官方剩余次数�
 - [OpenAI：订阅用量](https://learn.chatgpt.com/docs/pricing)
 - [DeepSeek：余额接口](https://api-docs.deepseek.com/api/get-user-balance/)
 
-## 从 v1.0.0 升级
+## 从 v1.0.0 / v1.1.0 升级
 
-先从托盘退出程序，再用 v1.1.0 的三个运行文件覆盖旧版本，保留原有 `data/`。原密钥、位置、显示开关与刷新间隔继续有效；外观默认随系统，浮窗默认自动贴合内容。
+先从托盘退出程序，再将 v1.1.1 解压到原目录，覆盖运行文件并保留 `data/`。也可在安装助手中选择原目录。第一次启动会把旧设置及当前 Windows 用户可解密的密钥复制到新版用户数据目录；旧文件保留，已有新版配置不会被旧数据覆盖。
 
-版本：1.1.0
+迁移后位置、开关、刷新间隔、主题与尺寸继续有效。若要更换安装位置，请先在原目录启动一次完成迁移。曾用其他管理员账户保存的 Key 可能无法解密，按提示重新输入即可；正常使用无需管理员运行。
+
+版本：1.1.1

@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
-[assembly: AssemblyInformationalVersion("1.1.0")]
+[assembly: AssemblyVersion("1.1.1.0")]
+[assembly: AssemblyFileVersion("1.1.1.0")]
+[assembly: AssemblyInformationalVersion("1.1.1")]
 
 namespace TokenMonitor {
     public sealed class MonitorApp : Application {
@@ -43,10 +43,12 @@ namespace TokenMonitor {
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);ShutdownMode=ShutdownMode.OnExplicitShutdown;
             using(var stream=typeof(MonitorApp).Assembly.GetManifestResourceStream("TokenMonitor.Theme.xaml")) Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
+            if(!smoke)LocalStorage.Initialize();
             Prefs=smoke?new Preferences():Preferences.Load();
             Appearance.Apply(Prefs.Appearance);
             if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
+            if(!smoke&&!string.IsNullOrEmpty(LocalStorage.Notice))Main.Subtitle.Text="本机配置需要处理，请打开设置查看";
             Gpt=new UsageView(this,true);Deep=new UsageView(this,false);
             Gpt.RestoreSize(Prefs.GptWidth,Prefs.GptHeight,Prefs.GptAutoHeight);Deep.RestoreSize(Prefs.DeepWidth,Prefs.DeepHeight,Prefs.DeepAutoHeight);
             Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();
@@ -169,7 +171,7 @@ namespace TokenMonitor {
             Prefs.MainX=Main.Left;Prefs.MainY=Main.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
             Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
             Prefs.DeepWidth=Deep.Width;Prefs.DeepHeight=Deep.Height;Prefs.DeepAutoHeight=Deep.AutoHeight;
-            try {Prefs.Save();}catch {Main.Subtitle.Text="位置保存失败，请检查目录权限";}
+            try {Prefs.Save();}catch(Exception e) {LocalStorage.Notice=LocalStorage.Explain(e,"保存窗口配置");Main.Subtitle.Text="配置保存失败，请打开设置查看";}
         }
         public void Quit() {
             if(quitting)return;Save();quitting=true;
@@ -249,7 +251,7 @@ namespace TokenMonitor {
         public static int Main(string[] args) {
             if(args.Length>0&&args[0]=="--self-test") return SelfTests.Run(args.Length>1?args[1]:Path.Combine(Paths.Root,"self-test.json"));
             if(args.Length>0&&args[0]=="--diagnose") return Diagnose(args.Length>1?args[1]:Path.Combine(Paths.Root,"diagnose.json")).GetAwaiter().GetResult();
-            if(args.Length>1&&args[0]=="--ui-test") {new MonitorApp(args[1],true).Run();return 0;}
+            if(args.Length>1&&args[0]=="--ui-test") {Paths.TestDataDirectory=Path.Combine(Path.GetFullPath(args[1]),"test-profile");new MonitorApp(args[1],true).Run();return 0;}
             bool fresh;using(var mutex=new Mutex(true,MutexName,out fresh)) {
                 if(!fresh) {
                     // Use a named event instead of window titles: it also works when the control panel is hidden.
@@ -265,6 +267,7 @@ namespace TokenMonitor {
             }
         }
         static async Task<int> Diagnose(string report) {
+            LocalStorage.Initialize();
             var result=new Dictionary<string,object>();
             using(var gpt=new CodexProvider())using(var deep=new DeepProvider()) {
                 try {var s=await gpt.Fetch();result["gpt"]=new {ok=true,groups=s.Groups.Count,windows=s.Groups.Sum(x=>x.Windows.Count)};}catch(Exception e){result["gpt"]=new {ok=false,error=e.GetType().Name};}
