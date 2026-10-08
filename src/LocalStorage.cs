@@ -9,7 +9,10 @@ namespace TokenMonitor {
     public static class LocalStorage {
         public static string Notice;
         public static void Initialize() {
-            try {Notice=Migrate(Path.Combine(Paths.Root,"data"));}
+            try {
+                Notice=Migrate(Path.Combine(Paths.Root,"data"));
+                if(Paths.TestDataDirectory==null&&!string.IsNullOrEmpty(StorageLocation.LoadWarning))Notice=StorageLocation.LoadWarning+(Notice==null?"":"\n"+Notice);
+            }
             catch(Exception e) {Notice=Explain(e,"准备用户数据目录");}
         }
         // Copy only missing, validated files. Existing per-user data always wins.

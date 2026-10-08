@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("1.1.1.0")]
-[assembly: AssemblyFileVersion("1.1.1.0")]
-[assembly: AssemblyInformationalVersion("1.1.1")]
+[assembly: AssemblyVersion("1.1.2.0")]
+[assembly: AssemblyFileVersion("1.1.2.0")]
+[assembly: AssemblyInformationalVersion("1.1.2")]
 
 namespace TokenMonitor {
     public sealed class MonitorApp : Application {
@@ -29,7 +29,7 @@ namespace TokenMonitor {
         public GptSnapshot GptData;
         public DeepSnapshot DeepData;
         public string GptError,DeepError;
-        bool gptBusy,deepBusy,quitting;
+        bool gptBusy,deepBusy,quitting,changingStorage;
         DateTimeOffset nextGpt=DateTimeOffset.MinValue,nextDeep=DateTimeOffset.MinValue;
         DateTimeOffset gptCooldown=DateTimeOffset.MinValue,deepCooldown=DateTimeOffset.MinValue;
         int gptFailures,deepFailures;
@@ -106,7 +106,7 @@ namespace TokenMonitor {
             if(e is HttpRequestException)return "网络连接失败，稍后自动重试";
             if(e is CryptographicException)return "无法解密密钥，请在设置中重新保存";
             if(!gpt&&e is InvalidOperationException)return "请在设置中填写 DeepSeek API Key";
-            if(e is UnauthorizedAccessException)return "访问被拒绝，请检查安装目录权限";
+            if(e is UnauthorizedAccessException)return "访问被拒绝，请在设置中检查数据目录权限";
             return gpt?"连接失败，请确认 Codex 已登录后重试":"查询失败，稍后自动重试";
         }
         static int Backoff(Exception e,int failures,int interval) {
@@ -115,14 +115,14 @@ namespace TokenMonitor {
         }
         public async Task RefreshGpt(bool force) {
             var now=DateTimeOffset.UtcNow;
-            if(quitting||gptBusy||!Prefs.Gpt||now<gptCooldown||(!force&&now<nextGpt))return;
+            if(quitting||changingStorage||gptBusy||!Prefs.Gpt||now<gptCooldown||(!force&&now<nextGpt))return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
             try {GptData=offline?SampleGpt():await codex.Fetch();GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {GptError=ErrorMessage(e,true);gptFailures++;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,gptFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)gptCooldown=nextGpt;}
             finally {gptBusy=false;if(!quitting){Gpt.Render(GptData,GptError,false);UpdateLabels();}}
         }
         public async Task ResetGptQuota() {
-            if(offline||quitting||gptBusy||!Prefs.Gpt)return;
+            if(offline||quitting||changingStorage||gptBusy||!Prefs.Gpt)return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
             string message=null;
             try {
@@ -149,7 +149,7 @@ namespace TokenMonitor {
         }
         public async Task RefreshDeep(bool force) {
             var now=DateTimeOffset.UtcNow;
-            if(quitting||deepBusy||!Prefs.Deep||now<deepCooldown||(!force&&now<nextDeep))return;
+            if(quitting||changingStorage||deepBusy||!Prefs.Deep||now<deepCooldown||(!force&&now<nextDeep))return;
             deepBusy=true;Deep.UpdateStatus(DeepData,DeepError,true);
             try {DeepData=offline?SampleDeep():await deep.Fetch();DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {DeepError=ErrorMessage(e,false);deepFailures++;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,deepFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)deepCooldown=nextDeep;}
@@ -172,6 +172,16 @@ namespace TokenMonitor {
             Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
             Prefs.DeepWidth=Deep.Width;Prefs.DeepHeight=Deep.Height;Prefs.DeepAutoHeight=Deep.AutoHeight;
             try {Prefs.Save();}catch(Exception e) {LocalStorage.Notice=LocalStorage.Explain(e,"保存窗口配置");Main.Subtitle.Text="配置保存失败，请打开设置查看";}
+        }
+        public async Task ChangeDataDirectory(string destination) {
+            if(changingStorage)throw new InvalidOperationException("已有数据目录切换正在进行");
+            changingStorage=true;
+            try {
+                while(gptBusy||deepBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
+                if(quitting)throw new OperationCanceledException();
+                Save();StorageLocation.Relocate(destination,Prefs);
+                Main.Subtitle.Text="用量，随时可见  ·  v1.1.2";
+            } finally {changingStorage=false;}
         }
         public void Quit() {
             if(quitting)return;Save();quitting=true;
@@ -249,14 +259,20 @@ namespace TokenMonitor {
         [DllImport("user32.dll")]static extern bool ShowWindow(IntPtr hWnd,int cmd);
         [STAThread]
         public static int Main(string[] args) {
+            if(args.Length>0&&args[0]=="--set-data-dir"&&args.Length!=2)return 1;
             if(args.Length>0&&args[0]=="--self-test") return SelfTests.Run(args.Length>1?args[1]:Path.Combine(Paths.Root,"self-test.json"));
-            if(args.Length>0&&args[0]=="--diagnose") return Diagnose(args.Length>1?args[1]:Path.Combine(Paths.Root,"diagnose.json")).GetAwaiter().GetResult();
+            if(args.Length>0&&args[0]=="--diagnose") return Diagnose(args.Length>1?args[1]:Path.Combine(Paths.Data,"diagnose.json")).GetAwaiter().GetResult();
             if(args.Length>1&&args[0]=="--ui-test") {Paths.TestDataDirectory=Path.Combine(Path.GetFullPath(args[1]),"test-profile");new MonitorApp(args[1],true).Run();return 0;}
             bool fresh;using(var mutex=new Mutex(true,MutexName,out fresh)) {
                 if(!fresh) {
+                    if(args.Length>0&&args[0]=="--set-data-dir")return 2;
                     // Use a named event instead of window titles: it also works when the control panel is hidden.
                     try {using(var signal=EventWaitHandle.OpenExisting("Local\\TokenMonitor.Show.v1"))signal.Set();}catch{}
                     return 0;
+                }
+                if(args.Length>1&&args[0]=="--set-data-dir") {
+                    try {LocalStorage.Initialize();StorageLocation.Relocate(args[1],Preferences.Load());return 0;}
+                    catch {return 1;}
                 }
                 using(var signal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\TokenMonitor.Show.v1")) {
                     var app=new MonitorApp(args.Length>1&&args[0]=="--smoke-test"?args[1]:null);
@@ -269,6 +285,7 @@ namespace TokenMonitor {
         static async Task<int> Diagnose(string report) {
             LocalStorage.Initialize();
             var result=new Dictionary<string,object>();
+            result["data_directory"]=Paths.Data;
             using(var gpt=new CodexProvider())using(var deep=new DeepProvider()) {
                 try {var s=await gpt.Fetch();result["gpt"]=new {ok=true,groups=s.Groups.Count,windows=s.Groups.Sum(x=>x.Windows.Count)};}catch(Exception e){result["gpt"]=new {ok=false,error=e.GetType().Name};}
                 try {var s=await deep.Fetch();result["deepseek"]=new {ok=true,currencies=s.Balances.Select(x=>x.Currency).ToArray()};}catch(Exception e){result["deepseek"]=new {ok=false,error=e.GetType().Name};}

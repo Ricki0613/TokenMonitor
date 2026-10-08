@@ -104,7 +104,7 @@ namespace TokenMonitor {
                 });
                 check("Production storage uses Windows current-user LocalApplicationData",()=>{
                     var data=Paths.TestDataDirectory;
-                    try {Paths.TestDataDirectory=null;Assert(Paths.Data==Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"TokenMonitor"));}
+                    try {Paths.TestDataDirectory=null;Assert(Paths.DefaultData==Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"TokenMonitor"));}
                     finally {Paths.TestDataDirectory=data;}
                 });
                 check("Fresh installation automatically creates user data without an install data folder",()=>StorageCase(temp,"fresh",()=>{
@@ -160,6 +160,46 @@ namespace TokenMonitor {
                     Assert(LocalStorage.Explain(new System.Security.Cryptography.CryptographicException(sensitive),"保存密钥").Contains("加密失败"));
                     var message=LocalStorage.Explain(new IOException(sensitive),"保存设置");Assert(message.Contains("磁盘空间")&&!message.Contains(sensitive)&&message.Contains("0x"));
                 });
+                check("Custom data location preserves key, preferences and pending reset, retaining source backup",()=>StorageCase(temp,"custom-location",()=>{
+                    LocalStorage.Initialize();string original=Paths.Data,pending=Guid.NewGuid().ToString();
+                    var prefs=new Preferences {Appearance="dark",GptWidth=660,PendingResetKey=pending};prefs.Save();SecretStore.Save("sk-test-only-custom-location");
+                    byte[] originalKey=File.ReadAllBytes(Paths.Key);string destination=Path.Combine(temp,"custom-data 中文"),remembered=null;
+                    StorageLocation.Relocate(destination,prefs,path=>remembered=path);
+                    Assert(Paths.Data==destination&&remembered==destination&&SecretStore.Read()=="sk-test-only-custom-location");
+                    Assert(Preferences.Load().PendingResetKey==pending&&Preferences.Load().GptWidth==660);
+                    Assert(File.ReadAllBytes(Path.Combine(original,"deepseek.key")).SequenceEqual(originalKey)&&File.Exists(Path.Combine(original,"settings.json")));
+                    new Preferences {Appearance="light"}.Save();Assert(Preferences.Load().Appearance=="light");
+                }));
+                check("Custom location supports first use without a saved key",()=>StorageCase(temp,"empty-location",()=>{
+                    LocalStorage.Initialize();string destination=Path.Combine(temp,"empty-custom");
+                    StorageLocation.Relocate(destination,new Preferences {Deep=false},path=>{});
+                    Assert(Paths.Data==destination&&!File.Exists(Paths.Key)&&!Preferences.Load().Deep);
+                }));
+                check("Nonempty data destination is rejected without overwriting either side",()=>StorageCase(temp,"occupied-location",()=>{
+                    LocalStorage.Initialize();new Preferences().Save();string original=Paths.Data,destination=Path.Combine(temp,"occupied-custom");Directory.CreateDirectory(destination);
+                    File.WriteAllText(Path.Combine(destination,"keep.txt"),"existing data");bool rejected=false,committed=false;
+                    try {StorageLocation.Relocate(destination,new Preferences(),path=>committed=true);}catch(ArgumentException){rejected=true;}
+                    Assert(rejected&&!committed&&Paths.Data==original&&File.ReadAllText(Path.Combine(destination,"keep.txt"))=="existing data");
+                }));
+                check("Location persistence failure leaves original directory active",()=>StorageCase(temp,"location-save-failure",()=>{
+                    LocalStorage.Initialize();SecretStore.Save("sk-test-only-original-active");string original=Paths.Data,destination=Path.Combine(temp,"uncommitted-custom");bool operationFailed=false;
+                    try {StorageLocation.Relocate(destination,new Preferences(),path=>{throw new UnauthorizedAccessException();});}catch(UnauthorizedAccessException){operationFailed=true;}
+                    Assert(operationFailed&&Paths.Data==original&&SecretStore.Read()=="sk-test-only-original-active"&&File.Exists(Path.Combine(destination,"deepseek.key")));
+                }));
+                check("Unwritable data destination leaves original location and data intact",()=>StorageCase(temp,"denied-location",()=>{
+                    LocalStorage.Initialize();SecretStore.Save("sk-test-only-denied-destination");string original=Paths.Data,destination=Path.Combine(temp,"denied-custom");Directory.CreateDirectory(destination);
+                    var directory=new DirectoryInfo(destination);var acl=directory.GetAccessControl();var denied=directory.GetAccessControl();
+                    denied.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User,FileSystemRights.Write,InheritanceFlags.ContainerInherit|InheritanceFlags.ObjectInherit,PropagationFlags.None,AccessControlType.Deny));
+                    try {directory.SetAccessControl(denied);bool operationFailed=false,committed=false;
+                        try {StorageLocation.Relocate(destination,new Preferences(),path=>committed=true);}catch(UnauthorizedAccessException){operationFailed=true;}
+                        Assert(operationFailed&&!committed&&Paths.Data==original&&SecretStore.Read()=="sk-test-only-denied-destination");
+                    }finally {directory.SetAccessControl(acl);}
+                }));
+                check("Choosing current data directory is a no-op and relative paths are rejected",()=>StorageCase(temp,"same-location",()=>{
+                    LocalStorage.Initialize();string original=Paths.Data;bool committed=false;
+                    StorageLocation.Relocate(original+"\\",new Preferences(),path=>committed=true);Assert(!committed&&Paths.Data==original);
+                    bool rejected=false;try {StorageLocation.Relocate("relative",new Preferences(),path=>committed=true);}catch(ArgumentException){rejected=true;}Assert(rejected&&!committed);
+                }));
             } finally {Paths.Root=saved;Paths.TestDataDirectory=savedData;Directory.Delete(temp,true);}
             File.WriteAllText(report,Json.Write(new {passed=passed,failed=failed}));return failed.Count==0?0:1;
         }

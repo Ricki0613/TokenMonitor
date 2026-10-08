@@ -152,7 +152,7 @@ namespace TokenMonitor {
         public readonly TextBlock GptInfo,DeepInfo;
         public readonly ComboBox Interval;
         public readonly Button Refresh;
-        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v1.1.1",UI.Green,410,398,false) {
+        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v1.1.2",UI.Green,410,398,false) {
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
             GptSwitch=new CheckBox { Style=(Style)Application.Current.FindResource("Switch"),IsChecked=app.Prefs.Gpt };
@@ -289,12 +289,24 @@ namespace TokenMonitor {
             AutomationProperties.SetName(input,"新的 DeepSeek API Key");Body.Children.Add(input);
             var hint=UI.Text(File.Exists(Paths.Key)?"已保存密钥。留空可保留原密钥。":"尚未设置密钥。",11,UI.Muted);hint.Margin=new Thickness(2,9,0,15);Body.Children.Add(hint);
             var info=UI.Text("密钥由 Windows 当前用户加密保存。GPT 自动使用本机 Codex 的登录账号。",12,UI.Muted);info.Margin=new Thickness(2,0,0,14);Body.Children.Add(info);
-            var storageLabel=UI.Text("用户数据目录（自动创建）",11,UI.Muted);storageLabel.Margin=new Thickness(2,0,0,5);Body.Children.Add(storageLabel);
+            var storageLabel=UI.Text("数据目录",11,UI.Muted);storageLabel.Margin=new Thickness(2,0,0,5);Body.Children.Add(storageLabel);
             var storagePath=new TextBox {Text=Paths.Data,IsReadOnly=true,TextWrapping=TextWrapping.Wrap,BorderThickness=new Thickness(0),Background=Brushes.Transparent,FontSize=11,Margin=new Thickness(2,0,0,8)};
             Appearance.Paint(storagePath,TextBox.ForegroundProperty,UI.Muted);Body.Children.Add(storagePath);
             var message=UI.Text(LocalStorage.Notice??"",11,"#B77436");message.Visibility=string.IsNullOrEmpty(LocalStorage.Notice)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);Body.Children.Add(message);
             var folder=UI.Button("打开数据目录",()=>{try {Directory.CreateDirectory(Paths.Data);Process.Start(new ProcessStartInfo(Paths.Data){UseShellExecute=true});}catch(Exception e){message.Text=LocalStorage.Explain(e,"打开数据目录");message.Visibility=Visibility.Visible;} });folder.HorizontalAlignment=HorizontalAlignment.Left;folder.Margin=new Thickness(0,0,0,14);Body.Children.Add(folder);
-            var save=UI.Button("保存",()=>{
+            Button save=null,choose=null;
+            choose=UI.Button("选择数据目录",async()=>{
+                using(var dialog=new System.Windows.Forms.FolderBrowserDialog {Description="请选择空文件夹。现有配置和密钥会复制过去，原目录保留备份。",SelectedPath=Paths.Data,ShowNewFolderButton=true}) {
+                    if(dialog.ShowDialog()!=System.Windows.Forms.DialogResult.OK)return;
+                    choose.IsEnabled=false;save.IsEnabled=false;message.Text="正在等待同步完成并迁移数据…";message.Visibility=Visibility.Visible;
+                    try {await app.ChangeDataDirectory(dialog.SelectedPath);storagePath.Text=Paths.Data;message.Text="数据目录已保存，重启后继续使用。原目录副本保留。";}
+                    catch(Exception e) {message.Text=e is ArgumentException?e.Message:LocalStorage.Explain(e,"切换数据目录")+"\n原目录仍在使用，目标中的副本可保留或另选空目录。";}
+                    finally {choose.IsEnabled=true;save.IsEnabled=true;}
+                }
+            });choose.HorizontalAlignment=HorizontalAlignment.Left;choose.Margin=new Thickness(0,0,0,14);
+            var locationActions=new WrapPanel();Body.Children.Remove(folder);folder.Margin=new Thickness(0,0,8,14);locationActions.Children.Add(folder);locationActions.Children.Add(choose);Body.Children.Add(locationActions);
+            var locationHint=UI.Text("选择空文件夹，自动迁移当前配置和密钥。",10.5,UI.Muted);locationHint.Margin=new Thickness(2,0,0,14);Body.Children.Add(locationHint);
+            save=UI.Button("保存",()=>{
                 string operation="保存密钥",previous=app.Prefs.Appearance;
                 try {
                     if(input.Password.Length>0)SecretStore.Save(input.Password);

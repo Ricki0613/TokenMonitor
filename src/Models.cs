@@ -134,8 +134,8 @@ namespace TokenMonitor {
     public static class Paths {
         public static string Root=AppDomain.CurrentDomain.BaseDirectory;
         internal static string TestDataDirectory;
-        public static string Data { get {
-            if(TestDataDirectory!=null)return TestDataDirectory;
+        public static string Data { get {return TestDataDirectory??StorageLocation.Current;} }
+        public static string DefaultData { get {
             string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if(string.IsNullOrWhiteSpace(local))throw new IOException("Windows 用户数据目录不可用");
             return Path.Combine(local,"TokenMonitor");
