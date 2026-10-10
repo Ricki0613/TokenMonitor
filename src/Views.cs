@@ -148,20 +148,25 @@ namespace TokenMonitor {
         }
     }
     public sealed class MainView : Shell {
-        public readonly CheckBox GptSwitch,DeepSwitch;
-        public readonly TextBlock GptInfo,DeepInfo;
+        public readonly CheckBox GptSwitch,DeepSwitch,OpenAiSwitch;
+        public readonly TextBlock GptInfo,DeepInfo,OpenAiInfo;
         public readonly ComboBox Interval;
         public readonly Button Refresh;
-        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v1.1.2",UI.Green,410,398,false) {
+        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v2.0.0",UI.Green,410,490,false) {
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
+            OpenAiInfo=UI.Text("在设置中连接 API Key",11.5,UI.Muted);
             GptSwitch=new CheckBox { Style=(Style)Application.Current.FindResource("Switch"),IsChecked=app.Prefs.Gpt };
             DeepSwitch=new CheckBox { Style=(Style)Application.Current.FindResource("Switch"),IsChecked=app.Prefs.Deep };
+            OpenAiSwitch=new CheckBox { Style=(Style)Application.Current.FindResource("Switch"),IsChecked=app.Prefs.OpenAi };
             AutomationProperties.SetName(GptSwitch,"显示 GPT 用量悬浮窗");AutomationProperties.SetName(DeepSwitch,"显示 DeepSeek 用量悬浮窗");
+            AutomationProperties.SetName(OpenAiSwitch,"显示 OpenAI API 用量悬浮窗");
             Body.Children.Add(ServiceCard("ChatGPT", "Codex / Work",GptInfo,GptSwitch,UI.Green));
             Body.Children.Add(ServiceCard("DeepSeek", "API",DeepInfo,DeepSwitch,UI.Blue));
+            Body.Children.Add(ServiceCard("OpenAI", "API",OpenAiInfo,OpenAiSwitch,UI.Green));
             GptSwitch.Checked+=(s,e)=>app.SetGpt(true);GptSwitch.Unchecked+=(s,e)=>app.SetGpt(false);
             DeepSwitch.Checked+=(s,e)=>app.SetDeep(true);DeepSwitch.Unchecked+=(s,e)=>app.SetDeep(false);
+            OpenAiSwitch.Checked+=(s,e)=>app.SetOpenAi(true);OpenAiSwitch.Unchecked+=(s,e)=>app.SetOpenAi(false);
             Interval=new ComboBox { Width=85,Height=28,FontSize=12,VerticalContentAlignment=VerticalAlignment.Center,ItemsSource=new[]{"15 秒","30 秒","60 秒","120 秒"} };
             Interval.SelectedIndex=Array.IndexOf(new[]{15,30,60,120},app.Prefs.Interval);
             AutomationProperties.SetName(Interval,"自动刷新间隔");
@@ -280,44 +285,102 @@ namespace TokenMonitor {
         }
     }
     public sealed class SettingsView : Shell {
-        public SettingsView(MonitorApp app):base("设置","连接与本机配置",UI.Green,408,376,false) {
+        public SettingsView(MonitorApp app):base("设置","连接与本机配置",UI.Green,438,740,false) {
             var appearance=new ComboBox {Height=32,FontSize=12,ItemsSource=new[]{"随系统","浅色","深色"},SelectedIndex=Array.IndexOf(new[]{"system","light","dark"},app.Prefs.Appearance)};
             AutomationProperties.SetName(appearance,"外观主题");
             var appearanceRow=UI.Row(UI.Text("外观",13,UI.Ink,true),appearance);appearance.Width=140;appearanceRow.Margin=new Thickness(2,0,2,16);Body.Children.Add(appearanceRow);
             var label=UI.Text("DeepSeek API Key",13,UI.Ink,true);label.Margin=new Thickness(2,3,0,10);Body.Children.Add(label);
-            var input=new PasswordBox {Height=37,Padding=new Thickness(10,7,10,7),FontSize=14,BorderThickness=new Thickness(1)};
-            AutomationProperties.SetName(input,"新的 DeepSeek API Key");Body.Children.Add(input);
+            var input=PasswordInput("新的 DeepSeek API Key");Body.Children.Add(input);
             var hint=UI.Text(File.Exists(Paths.Key)?"已保存密钥。留空可保留原密钥。":"尚未设置密钥。",11,UI.Muted);hint.Margin=new Thickness(2,9,0,15);Body.Children.Add(hint);
-            var info=UI.Text("密钥由 Windows 当前用户加密保存。GPT 自动使用本机 Codex 的登录账号。",12,UI.Muted);info.Margin=new Thickness(2,0,0,14);Body.Children.Add(info);
+
+            OpenAiConnection existing=null;string readError=null;
+            try {if(File.Exists(Paths.OpenAiKey))existing=OpenAiSecretStore.Read();}
+            catch(Exception e) {readError=LocalStorage.Explain(e,"读取 OpenAI 密钥")+" 请重新填写 OpenAI API Key。";}
+            var openAiLabel=UI.Text("OpenAI API Key 登录",13,UI.Ink,true);openAiLabel.Margin=new Thickness(2,3,0,10);Body.Children.Add(openAiLabel);
+            var api=PasswordInput("新的 OpenAI API Key");Body.Children.Add(api);
+            var loginHint=UI.Text(existing!=null?"已保存普通密钥。留空可保留。":"尚未登录。填写普通 API Key 后点击连接。",11,UI.Muted);loginHint.Margin=new Thickness(2,9,0,12);Body.Children.Add(loginHint);
+            var adminLabel=UI.Text("Admin API Key",12,UI.Ink,true);adminLabel.Margin=new Thickness(2,0,0,8);Body.Children.Add(adminLabel);
+            var admin=PasswordInput("新的 OpenAI Admin API Key");Body.Children.Add(admin);
+            var adminHint=UI.Text(existing!=null&&!string.IsNullOrEmpty(existing.AdminKey)?"已保存管理密钥。留空可保留。":"读取用量需要组织管理员创建的管理密钥。",11,UI.Muted);adminHint.Margin=new Thickness(2,9,0,12);Body.Children.Add(adminHint);
+            var idLabel=UI.Text("对应的 API Key ID",12,UI.Ink,true);idLabel.Margin=new Thickness(2,0,0,8);Body.Children.Add(idLabel);
+            var idInput=new TextBox {Text=existing==null?"":existing.ApiKeyId??"",Height=37,Padding=new Thickness(10,7,10,7),FontSize=12,BorderThickness=new Thickness(1)};
+            idInput.SetResourceReference(TextBox.BackgroundProperty,"CardBrush");idInput.SetResourceReference(TextBox.ForegroundProperty,"InkBrush");idInput.SetResourceReference(TextBox.BorderBrushProperty,"InputBorderBrush");idInput.SetResourceReference(TextBox.CaretBrushProperty,"InkBrush");
+            AutomationProperties.SetName(idInput,"OpenAI API Key ID，key_ 开头");Body.Children.Add(idInput);
+            var idHint=UI.Text("填写与上方普通密钥对应的 key_ 标识。更换普通密钥后需重新填写 ID。",11,UI.Muted);idHint.Margin=new Thickness(2,9,0,12);Body.Children.Add(idHint);
+            var openAiInfo=UI.Text("普通 API Key 可登录并调用 API，无法读取历史用量。统计今日 / 本月 token 还需要 Admin API Key 和对应的 API Key ID。",11.5,UI.Muted);openAiInfo.Margin=new Thickness(2,0,0,12);Body.Children.Add(openAiInfo);
+            bool suppressReset=false,keyIdReset=false,busy=false;
+            api.PasswordChanged+=(s,e)=>{
+                if(!suppressReset&&!keyIdReset&&existing!=null&&api.Password.Length>0&&api.Password.Trim()!=existing.ApiKey) {idInput.Text="";keyIdReset=true;}
+            };
+            var message=UI.Text(readError??LocalStorage.Notice??"",11,"#B77436");message.Visibility=string.IsNullOrEmpty(message.Text)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);
+            Action<string> showMessage=text=>{message.Text=text;message.Visibility=Visibility.Visible;};
+            Func<OpenAiConnection> compose=()=>{
+                string newKey=api.Password.Trim();bool replacing=newKey.Length>0&&(existing==null||newKey!=existing.ApiKey);
+                return new OpenAiConnection {
+                    ApiKey=newKey.Length>0?newKey:existing==null?null:existing.ApiKey,
+                    AdminKey=admin.Password.Trim().Length>0?admin.Password.Trim():existing==null?null:existing.AdminKey,
+                    ApiKeyId=idInput.Text.Trim().Length>0?idInput.Text.Trim():replacing?null:existing==null?null:existing.ApiKeyId
+                };
+            };
+            Func<bool> changed=()=>api.Password.Length>0||admin.Password.Length>0||idInput.Text.Trim()!=(existing==null?"":existing.ApiKeyId??"");
+            Func<System.Threading.Tasks.Task> connectCurrent=async()=>{
+                var connection=compose();await app.ConnectOpenAi(connection);existing=connection;
+                suppressReset=true;api.Clear();admin.Clear();idInput.Text=existing.ApiKeyId??"";suppressReset=false;keyIdReset=false;
+                loginHint.Text="已保存普通密钥。留空可保留。";
+                adminHint.Text=string.IsNullOrEmpty(existing.AdminKey)?"读取用量需要组织管理员创建的管理密钥。":"已保存管理密钥。留空可保留。";
+                showMessage(string.IsNullOrEmpty(existing.AdminKey)||string.IsNullOrEmpty(existing.ApiKeyId)?"OpenAI API Key 登录成功。补充管理密钥和对应 ID 后可查看 token 用量。":"OpenAI 已连接，用量按此 API Key ID 筛选。请确认 ID 对应上方普通密钥。");
+            };
+            Button save=null,choose=null,connect=null,cancel=null;
+            Action<bool> setBusy=value=>{busy=value;api.IsEnabled=!value;admin.IsEnabled=!value;idInput.IsEnabled=!value;input.IsEnabled=!value;appearance.IsEnabled=!value;if(save!=null)save.IsEnabled=!value;if(choose!=null)choose.IsEnabled=!value;if(connect!=null)connect.IsEnabled=!value;if(cancel!=null)cancel.IsEnabled=!value;};
+            connect=UI.Button("连接 OpenAI",async()=>{
+                setBusy(true);showMessage("正在验证 OpenAI API Key…");
+                try {await connectCurrent();}
+                catch(Exception e) {showMessage(ConnectionError(e));}
+                finally {setBusy(false);}
+            });connect.SetResourceReference(Button.BackgroundProperty,"ActionBrush");connect.SetResourceReference(Button.ForegroundProperty,"ActionInkBrush");
+            var keyPage=UI.Button("密钥管理 ↗",()=>UI.Link("https://platform.openai.com/api-keys"));keyPage.Margin=new Thickness(8,0,0,0);
+            var connectionActions=new WrapPanel {Margin=new Thickness(0,0,0,12)};connectionActions.Children.Add(connect);connectionActions.Children.Add(keyPage);Body.Children.Add(connectionActions);Body.Children.Add(message);
+            var info=UI.Text("密钥由 Windows 当前用户加密保存在本机。ChatGPT 自动使用本机 Codex 的登录账号。",11.5,UI.Muted);info.Margin=new Thickness(2,0,0,14);Body.Children.Add(info);
             var storageLabel=UI.Text("数据目录",11,UI.Muted);storageLabel.Margin=new Thickness(2,0,0,5);Body.Children.Add(storageLabel);
             var storagePath=new TextBox {Text=Paths.Data,IsReadOnly=true,TextWrapping=TextWrapping.Wrap,BorderThickness=new Thickness(0),Background=Brushes.Transparent,FontSize=11,Margin=new Thickness(2,0,0,8)};
             Appearance.Paint(storagePath,TextBox.ForegroundProperty,UI.Muted);Body.Children.Add(storagePath);
-            var message=UI.Text(LocalStorage.Notice??"",11,"#B77436");message.Visibility=string.IsNullOrEmpty(LocalStorage.Notice)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);Body.Children.Add(message);
             var folder=UI.Button("打开数据目录",()=>{try {Directory.CreateDirectory(Paths.Data);Process.Start(new ProcessStartInfo(Paths.Data){UseShellExecute=true});}catch(Exception e){message.Text=LocalStorage.Explain(e,"打开数据目录");message.Visibility=Visibility.Visible;} });folder.HorizontalAlignment=HorizontalAlignment.Left;folder.Margin=new Thickness(0,0,0,14);Body.Children.Add(folder);
-            Button save=null,choose=null;
             choose=UI.Button("选择数据目录",async()=>{
                 using(var dialog=new System.Windows.Forms.FolderBrowserDialog {Description="请选择空文件夹。现有配置和密钥会复制过去，原目录保留备份。",SelectedPath=Paths.Data,ShowNewFolderButton=true}) {
                     if(dialog.ShowDialog()!=System.Windows.Forms.DialogResult.OK)return;
-                    choose.IsEnabled=false;save.IsEnabled=false;message.Text="正在等待同步完成并迁移数据…";message.Visibility=Visibility.Visible;
+                    setBusy(true);message.Text="正在等待同步完成并迁移数据…";message.Visibility=Visibility.Visible;
                     try {await app.ChangeDataDirectory(dialog.SelectedPath);storagePath.Text=Paths.Data;message.Text="数据目录已保存，重启后继续使用。原目录副本保留。";}
                     catch(Exception e) {message.Text=e is ArgumentException?e.Message:LocalStorage.Explain(e,"切换数据目录")+"\n原目录仍在使用，目标中的副本可保留或另选空目录。";}
-                    finally {choose.IsEnabled=true;save.IsEnabled=true;}
+                    finally {setBusy(false);}
                 }
             });choose.HorizontalAlignment=HorizontalAlignment.Left;choose.Margin=new Thickness(0,0,0,14);
             var locationActions=new WrapPanel();Body.Children.Remove(folder);folder.Margin=new Thickness(0,0,8,14);locationActions.Children.Add(folder);locationActions.Children.Add(choose);Body.Children.Add(locationActions);
             var locationHint=UI.Text("选择空文件夹，自动迁移当前配置和密钥。",10.5,UI.Muted);locationHint.Margin=new Thickness(2,0,0,14);Body.Children.Add(locationHint);
-            save=UI.Button("保存",()=>{
+            save=UI.Button("保存",async()=>{
                 string operation="保存密钥",previous=app.Prefs.Appearance;
+                setBusy(true);
                 try {
+                    if(changed()) {operation="连接 OpenAI";showMessage("正在验证 OpenAI API Key…");await connectCurrent();}
+                    operation="保存密钥";
                     if(input.Password.Length>0)SecretStore.Save(input.Password);
                     operation="保存设置";app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.Save();
                 } catch(Exception e) {
-                    app.Prefs.Appearance=previous;message.Text=e is ArgumentException?e.Message:LocalStorage.Explain(e,operation);message.Visibility=Visibility.Visible;return;
+                    app.Prefs.Appearance=previous;showMessage(operation=="连接 OpenAI"?ConnectionError(e):e is ArgumentException?e.Message:LocalStorage.Explain(e,operation));return;
                 }
-                input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();Exiting=true;Close();app.RefreshAll(true);
+                finally {setBusy(false);}
+                input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();app.ResetOpenAiCooldown();Exiting=true;Close();await app.RefreshAll(true);
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
-            var cancel=UI.Button("取消",()=>{Exiting=true;Close();});Body.Children.Add(UI.Row(save,cancel));
-            CloseAction=()=>{Exiting=true;Close();};WindowStartupLocation=WindowStartupLocation.CenterOwner;
+            cancel=UI.Button("取消",()=>{Exiting=true;Close();});Body.Children.Add(UI.Row(save,cancel));
+            CloseAction=()=>{if(!busy){Exiting=true;Close();}};WindowStartupLocation=WindowStartupLocation.CenterOwner;
+        }
+        static PasswordBox PasswordInput(string name) {
+            var input=new PasswordBox {Height=37,Padding=new Thickness(10,7,10,7),FontSize=14,BorderThickness=new Thickness(1)};
+            AutomationProperties.SetName(input,name);return input;
+        }
+        static string ConnectionError(Exception error) {
+            if(error is ProviderException||error is ArgumentException)return error.Message;
+            if(error is System.Net.Http.HttpRequestException||error is System.Threading.Tasks.TaskCanceledException)return "无法连接 OpenAI，请检查网络后重试。输入内容已保留。";
+            return LocalStorage.Explain(error,"连接 OpenAI");
         }
     }
 }

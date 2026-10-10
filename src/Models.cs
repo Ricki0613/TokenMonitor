@@ -100,11 +100,14 @@ namespace TokenMonitor {
         }
     }
     public class Preferences {
-        public bool Gpt=true, Deep=true;
+        public bool Gpt=true, Deep=true, OpenAi=false;
         public int Interval=30;
         public string Appearance="system", PendingResetKey;
         public double GptWidth=368,GptHeight=500,DeepWidth=368,DeepHeight=445;
         public bool GptAutoHeight=true,DeepAutoHeight=true;
+        public double OpenAiWidth=368,OpenAiHeight=500;
+        public bool OpenAiAutoHeight=true;
+        public double OpenAiX=-1,OpenAiY=-1;
         public double GptX=-1,GptY=-1,DeepX=-1,DeepY=-1,MainX=-1,MainY=-1;
         public static Preferences Load() {
             try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences));
@@ -113,6 +116,7 @@ namespace TokenMonitor {
                 if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";
                 p.GptWidth=Size(p.GptWidth,300,1600,368);p.DeepWidth=Size(p.DeepWidth,300,1600,368);
                 p.GptHeight=Size(p.GptHeight,210,1600,500);p.DeepHeight=Size(p.DeepHeight,210,1600,445);
+                p.OpenAiWidth=Size(p.OpenAiWidth,300,1600,368);p.OpenAiHeight=Size(p.OpenAiHeight,210,1600,500);
                 Guid key;if(!Guid.TryParse(p.PendingResetKey,out key))p.PendingResetKey=null;
                 return p; }
             catch { return new Preferences(); }
@@ -142,6 +146,7 @@ namespace TokenMonitor {
         } }
         public static string Preferences { get { return Path.Combine(Data,"settings.json"); } }
         public static string Key { get { return Path.Combine(Data,"deepseek.key"); } }
+        public static string OpenAiKey { get { return Path.Combine(Data,"openai.key"); } }
     }
     public static class Atomic {
         public static void Write(string path,byte[] bytes) {

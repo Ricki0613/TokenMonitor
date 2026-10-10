@@ -63,6 +63,7 @@ namespace TokenMonitor {
                 try {new ResetRedemption(p,key=>{sentKey=key;return Task.FromResult(ResetResult.Parse(Json.Read("{\"outcome\":\"reset\"}")));},()=>{if(++saves==2)throw new IOException();}).Redeem().GetAwaiter().GetResult();}catch(IOException){}
                 Assert(sentKey!=null&&p.PendingResetKey==sentKey);
             });
+            OpenAiUsageTests.Run(check);
             var saved=Paths.Root;var temp=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(report)),"test-data-"+Guid.NewGuid().ToString("N"));
             var savedData=Paths.TestDataDirectory;
             Directory.CreateDirectory(temp);Paths.Root=Path.Combine(temp,"program");Paths.TestDataDirectory=Path.Combine(temp,"user-data");
@@ -71,12 +72,36 @@ namespace TokenMonitor {
                     string fake="sk-test-only-not-a-real-secret";SecretStore.Save(fake);Assert(SecretStore.Read()==fake);
                     Assert(!System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Paths.Key)).Contains(fake));
                 });
+                check("OpenAI credentials encrypt both ordinary and admin keys with no plaintext at rest",()=>{
+                    var connection=new OpenAiConnection {ApiKey="sk-test-only-openai-api",AdminKey="sk-admin-test-only-openai-admin",ApiKeyId="key_test_openai"};
+                    OpenAiSecretStore.Save(connection);var restored=OpenAiSecretStore.Read();
+                    Assert(restored.ApiKey==connection.ApiKey&&restored.AdminKey==connection.AdminKey&&restored.ApiKeyId==connection.ApiKeyId);
+                    string encrypted=System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Paths.OpenAiKey));
+                    Assert(!encrypted.Contains(connection.ApiKey)&&!encrypted.Contains(connection.AdminKey));
+                    new Preferences().Save();
+                    Assert(!File.ReadAllText(Paths.Preferences).Contains(connection.ApiKey));
+                });
+                check("OpenAI login-only credential can persist without reporting usage",()=>{
+                    OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-openai-login"});
+                    var restored=OpenAiSecretStore.Read();Assert(restored.AdminKey==null&&restored.ApiKeyId==null);
+                });
+                check("OpenAI invalid secret or key-ID saves preserve existing credentials",()=>{
+                    OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-openai-existing"});byte[] existing=File.ReadAllBytes(Paths.OpenAiKey);
+                    foreach(var invalid in new[]{new OpenAiConnection {ApiKey="bad"},new OpenAiConnection {ApiKey="sk-admin-test-only-wrong-login"},new OpenAiConnection {ApiKey="sk-test-only-openai-existing",ApiKeyId="sk-not-an-id"}}) {
+                        bool rejected=false;try {OpenAiSecretStore.Save(invalid);}catch(ArgumentException){rejected=true;}
+                        Assert(rejected&&existing.SequenceEqual(File.ReadAllBytes(Paths.OpenAiKey)));
+                    }
+                });
                 check("Visibility and positions persist across restart",()=>{
                     var p=new Preferences {Gpt=false,Deep=true,Interval=60,GptX=122,GptY=55};p.Save();var restored=Preferences.Load();Assert(!restored.Gpt&&restored.Deep&&restored.Interval==60&&restored.GptX==122);
                 });
                 check("Version 1.0 settings migrate without changing positions or visibility",()=>{
                     Directory.CreateDirectory(Paths.Data);File.WriteAllText(Paths.Preferences,"{\"Gpt\":false,\"Deep\":true,\"Interval\":60,\"GptX\":122,\"GptY\":55}");
-                    var p=Preferences.Load();Assert(!p.Gpt&&p.Deep&&p.GptX==122&&p.Appearance=="system"&&p.GptWidth==368&&p.GptAutoHeight);
+                    var p=Preferences.Load();Assert(!p.Gpt&&p.Deep&&p.GptX==122&&p.Appearance=="system"&&p.GptWidth==368&&p.GptAutoHeight&&!p.OpenAi&&p.OpenAiWidth==368&&p.OpenAiAutoHeight);
+                });
+                check("OpenAI visibility and geometry persist independently across restart",()=>{
+                    new Preferences {OpenAi=true,OpenAiWidth=660,OpenAiHeight=280,OpenAiAutoHeight=false,OpenAiX=25,OpenAiY=46,Gpt=false,Deep=false}.Save();
+                    var p=Preferences.Load();Assert(p.OpenAi&&p.OpenAiWidth==660&&p.OpenAiHeight==280&&!p.OpenAiAutoHeight&&p.OpenAiX==25&&p.OpenAiY==46&&!p.Gpt&&!p.Deep);
                 });
                 check("Appearance, resized geometry and auto-height mode persist",()=>{
                     var p=new Preferences {Appearance="dark",GptWidth=660,GptHeight=260,GptAutoHeight=false,DeepWidth=300,DeepAutoHeight=true};p.Save();var restored=Preferences.Load();
@@ -174,6 +199,20 @@ namespace TokenMonitor {
                     LocalStorage.Initialize();string destination=Path.Combine(temp,"empty-custom");
                     StorageLocation.Relocate(destination,new Preferences {Deep=false},path=>{});
                     Assert(Paths.Data==destination&&!File.Exists(Paths.Key)&&!Preferences.Load().Deep);
+                }));
+                check("OpenAI encrypted credentials relocate with settings and source backup retained",()=>StorageCase(temp,"openai-location",()=>{
+                    LocalStorage.Initialize();var prefs=new Preferences {OpenAi=true};prefs.Save();
+                    var connection=new OpenAiConnection {ApiKey="sk-test-only-openai-relocate",AdminKey="sk-admin-test-only-openai-relocate",ApiKeyId="key_relocate"};
+                    OpenAiSecretStore.Save(connection);string source=Paths.Data;byte[] encrypted=File.ReadAllBytes(Paths.OpenAiKey);
+                    StorageLocation.Relocate(Path.Combine(temp,"openai-custom"),prefs,path=>{});
+                    Assert(OpenAiSecretStore.Read().AdminKey==connection.AdminKey&&Preferences.Load().OpenAi&&encrypted.SequenceEqual(File.ReadAllBytes(Paths.OpenAiKey))&&encrypted.SequenceEqual(File.ReadAllBytes(Path.Combine(source,"openai.key"))));
+                }));
+                check("OpenAI encrypted credentials migrate only when target has no saved connection",()=>StorageCase(temp,"openai-migration",()=>{
+                    string target=Paths.Data,legacy=Path.Combine(Paths.Root,"data");Paths.TestDataDirectory=legacy;
+                    OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-openai-legacy"});Paths.TestDataDirectory=target;
+                    Assert(LocalStorage.Migrate(legacy)==null&&OpenAiSecretStore.Read().ApiKey=="sk-test-only-openai-legacy");
+                    OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-openai-current"});LocalStorage.Migrate(legacy);
+                    Assert(OpenAiSecretStore.Read().ApiKey=="sk-test-only-openai-current"&&File.Exists(Path.Combine(legacy,"openai.key")));
                 }));
                 check("Nonempty data destination is rejected without overwriting either side",()=>StorageCase(temp,"occupied-location",()=>{
                     LocalStorage.Initialize();new Preferences().Save();string original=Paths.Data,destination=Path.Combine(temp,"occupied-custom");Directory.CreateDirectory(destination);

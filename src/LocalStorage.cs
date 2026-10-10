@@ -20,12 +20,13 @@ namespace TokenMonitor {
             Directory.CreateDirectory(Paths.Data);
             if(string.Equals(Path.GetFullPath(legacy).TrimEnd('\\'),Path.GetFullPath(Paths.Data).TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))return null;
             var notes=new List<string>();
-            foreach(string name in new[]{"settings.json","deepseek.key"}) {
+            foreach(string name in new[]{"settings.json","deepseek.key","openai.key"}) {
                 string source=Path.Combine(legacy,name),destination=Path.Combine(Paths.Data,name);
                 if(File.Exists(destination)||!File.Exists(source))continue;
                 try {
                     byte[] bytes=File.ReadAllBytes(source);
                     if(name=="deepseek.key")SecretStore.ValidateEncrypted(bytes);
+                    else if(name=="openai.key")OpenAiSecretStore.ValidateEncrypted(bytes);
                     else {
                         try {
                             var value=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(source));
@@ -34,7 +35,7 @@ namespace TokenMonitor {
                     }
                     Atomic.Write(destination,bytes);
                 } catch(CryptographicException) {notes.Add("旧密钥无法由当前 Windows 用户解密，请在设置中重新输入 API Key。");}
-                catch(Exception e) {notes.Add(Explain(e,name=="deepseek.key"?"迁移旧密钥":"迁移旧设置"));}
+                catch(Exception e) {notes.Add(Explain(e,name.EndsWith(".key")?"迁移旧密钥":"迁移旧设置"));}
             }
             return notes.Count==0?null:string.Join("\n",notes);
         }

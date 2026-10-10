@@ -21,7 +21,7 @@ namespace TokenMonitor {
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
             http=new HttpClient(new HttpClientHandler { AllowAutoRedirect=false });
             http.Timeout=TimeSpan.FromSeconds(20);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/1.1.2");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/2.0.0");
         }
         public async Task<DeepSnapshot> Fetch() {
             string key=SecretStore.Read();
@@ -81,7 +81,7 @@ namespace TokenMonitor {
                 if(!p.Start()) throw new ProviderException("无法启动 Codex 用量连接");
                 process=p;p.BeginErrorReadLine();
                 Task.Run(()=>ReadLoop(p));
-                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="1.1.2" } }).ConfigureAwait(false);
+                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="2.0.0" } }).ConfigureAwait(false);
                 Send(new { method="initialized",@params=new {} });
             } catch { StopProcess();throw; } finally { startup.Release(); }
         }

@@ -1,13 +1,17 @@
 # 凭据和本机数据
 
-本工具涉及两类账户数据：Codex 已登录账号的额度，以及 DeepSeek API Key 关联账户的余额。
+本工具涉及三类账户数据：Codex 已登录账号的额度、DeepSeek API Key 关联账户的余额，以及指定 OpenAI API Key ID 的模型用量。
 
-- OpenAI 身份验证交由本机官方 Codex 处理。应用自身不直接读取或复制登录令牌。
+- Codex / ChatGPT Work 身份验证交由本机官方 Codex 处理。应用自身不直接读取或复制 Codex 登录令牌。
 - DeepSeek 密钥仅发送给固定的官方 HTTPS 余额接口，不跟随重定向。
 - 当前数据目录的 `deepseek.key` 使用 Windows DPAPI 按当前用户加密；默认目录是 `%LOCALAPPDATA%\TokenMonitor`，也可自选。它仍属于本机私密配置，即使已经加密也不应提交到 GitHub。
+- OpenAI 普通 API Key 仅用于固定官方 HTTPS `GET /v1/models` 登录验证；历史用量查询使用组织 Admin API Key 调用官方组织用量接口，不跟随重定向，不发送模型推理请求。
+- OpenAI API Key、Admin API Key 和目标 API Key ID 统一存储于当前数据目录的 `openai.key`，整份文件使用 Windows DPAPI 按当前用户加密。程序不会把这些凭据写入 `settings.json`；更换普通 Key 时会清除原有 Key ID 关联，需重新确认目标标识。
+- Admin API Key 具有组织管理权限，仅组织所有者可创建，请妥善保管。工具使用它读取用量，不执行组织管理写入。API Key ID 是手工指定的标识，工具不能从普通 Key 的秘密值推导二者对应关系。
 - 同目录的 `settings.json` 保存窗口位置、主题、尺寸、开关、刷新间隔和未确认的重置请求标识，不纳入版本控制。
 - v1.1.1 自动创建当前用户数据目录，正常运行无需管理员权限。程序文件和用户数据分离，安装位置不决定配置写入权限。
 - v1.1.2 支持自选空数据目录。先复制并校验配置和加密密钥，再保存路径选择；失败时仍使用原目录，迁移原件保留。
+- v2.0.0 的旧数据迁移和目录切换包括 `openai.key`，也遵循缺失文件才迁移、解密验证及保留原文件的规则。
 - 自选路径记录在当前用户的 `HKCU\Software\TokenMonitor\DataDirectory`；此项只记录目录路径，不存储 Key。不同 Windows 用户各自选择。
 - 升级时仅复制旧版 `data` 中缺失的有效设置和可由当前用户解密的密钥，保留旧文件，不覆盖已有新版配置。
 - 保存错误只显示操作名称、异常类别与错误代码，不显示密钥、原始异常消息或服务端响应。

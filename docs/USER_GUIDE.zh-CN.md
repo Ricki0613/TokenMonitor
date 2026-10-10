@@ -2,7 +2,7 @@
 
 ## 安装与启动
 
-1. 从 [最新发布页](https://github.com/Ricki0613/TokenMonitor/releases/latest) 下载 `TokenMonitor-v1.1.2-windows-x64.zip`，选择“全部解压”。
+1. 从 [发布页](https://github.com/Ricki0613/TokenMonitor/releases) 下载对应版本的 Windows ZIP，选择“全部解压”。v2.0.0 的运行包为 `TokenMonitor-v2.0.0-windows-x64.zip`。
 2. 双击 `Install.cmd`，按 Enter 接受默认位置，或分别输入程序位置和数据目录。助手创建桌面和开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
 3. 确保系统为 Windows 10 / 11 x64，并有 .NET Framework 4.8。详细安装和排错步骤见 [先读我](START_HERE.zh-CN.md)。
 
@@ -10,7 +10,7 @@
 
 无需安装 Python、Node 或 .NET SDK。需要桌面入口时，右键 `TokenMonitor.exe` 创建快捷方式并放到桌面即可。工具不会自动设置开机启动。
 
-## 配置两个服务
+## 配置三个服务
 
 ### GPT
 
@@ -24,15 +24,27 @@
 
 密钥使用 Windows DPAPI 按当前用户加密，存放在当前数据目录的 `deepseek.key`。设置页显示实际位置，并提供“打开数据目录”和“选择数据目录”。换电脑或 Windows 用户时需重新填写，不要把该文件分享给其他人。
 
+### OpenAI API
+
+OpenAI API 浮窗与 ChatGPT / Codex 订阅浮窗分别配置。API Key 登录不会替代或修改 Codex 登录。
+
+1. 在“设置”的 OpenAI 区域填写自己的普通 **API Key**，点击 **连接 OpenAI** 验证。程序仅调用 `GET https://api.openai.com/v1/models`，不发起对话或消耗模型 Token。若使用受限 Key，需要允许读取模型列表；读取权限不足也会导致验证失败。
+2. 若只填写普通 Key，登录成功后浮窗显示**待配置历史用量**，需要进一步填写 **Admin API Key** 和 **API Key ID**，不能将这个状态视为零用量。成功登录会开启 OpenAI 浮窗；也可通过控制面板开关控制显示。
+3. 由组织所有者在 [OpenAI 组织 Admin keys](https://platform.openai.com/settings/organization/admin-keys) 创建 Admin API Key，并将它填入管理密钥栏。普通项目 API Key 无法代替 Admin API Key 读取组织历史用量。
+4. 找到需要监控的普通 Key 的准确 **API Key ID**。它是 `key_…` 标识，**不是** `sk-…` 秘密值，也不是项目 ID、组织 ID、Key 名称或 Secret 的末尾几位。可用 Admin API Key 通过官方只读接口 `GET /v1/organization/projects` 查询项目，再用 `GET /v1/organization/projects/{project_id}/api_keys?owner_project_access=any` 查询对应项目的 Key 列表。核对名称、创建时间和脱敏 Secret，复制对应记录的 `id`。列表的 `has_more` 为 true 时需用 `last_id` 作为下一页的 `after` 查询；工具不会自动推导匹配关系。
+5. 补齐管理密钥和 Key ID 后再次点击 **连接 OpenAI** 并刷新，查看该 Key 的今日、本月用量。确保 Admin Key 所属组织和 Key 所属项目相符。更换普通 API Key 时，原 Key ID 关联会被清除，需重新指定并确认。
+
+普通 API Key、Admin API Key 与目标 Key ID 一起以当前 Windows 用户 DPAPI 加密保存在当前数据目录的 `openai.key`。已保存的普通 Key 和 Admin Key 输入框留空可保留原值；不要把 `openai.key` 或 Admin Key 分享给其他人。Admin Key 具有组织管理权限，工具仅使用它读取用量。
+
 ### 自选数据目录
 
-打开“设置 → 选择数据目录”，新建或选择一个可写空文件夹。当前配置、加密密钥和未确认的重置请求会自动复制、校验，成功后才启用新路径，原目录保留备份。路径选择即时生效并按 Windows 用户记住，关闭设置或重启后仍有效。
+打开“设置 → 选择数据目录”，新建或选择一个可写空文件夹。当前配置、`deepseek.key`、`openai.key` 和未确认的重置请求会自动复制、校验，成功后才启用新路径，原目录保留备份。路径选择即时生效并按 Windows 用户记住，关闭设置或重启后仍有效。
 
 不要手工剪切数据文件来换路径。目标非空、无写权限或路径选择无法保存时，程序继续使用原目录，并显示处理提示。自选目录位于其他磁盘时，请保证该磁盘在启动程序时可用。
 
 ## 日常操作
 
-- **显示开关**：ChatGPT、DeepSeek 分别控制各自的悬浮窗；隐藏后暂停对应服务的定时刷新。
+- **显示开关**：ChatGPT、DeepSeek、OpenAI API 分别控制各自的悬浮窗；隐藏后暂停对应服务的定时刷新。托盘菜单也可分别显示或隐藏。
 - **移动**：拖动窗口顶部。窗口位置、开关状态与刷新间隔自动保存。
 - **缩放**：拖动浮窗任意边缘或角落。变宽时额度/余额卡片并排，变窄时改为纵向与按钮换行，字号保持不变。最小宽度 300，避免内容过窄。
 - **贴合内容**：默认高度随内容变化，保留固定边距。手动调整高度后，较长内容可滚动；点击顶部 **↕** 恢复自动贴合高度。浮窗尺寸和贴合模式会保存。
@@ -64,12 +76,29 @@ ChatGPT 浮窗的 **重置额度 (N)** 显示当前账号的官方剩余次数�
 
 余额接口不提供全账户累计 Token 或历史消费明细；请点击“官方用量”查看后台。工具不会通过余额差额估算 Token 数。
 
+### OpenAI：指定 API Key 的 Token 用量
+
+使用组织 Admin API Key 查询官方 `GET /v1/organization/usage/completions`，按提供的 `api_key_ids` 筛选并处理分页，分别汇总北京时间（UTC+8）今日零点至当前、本月第一天零点至当前的用量。统计不是最近 24 小时或最近 30 天。
+
+- **输入 Token**：官方返回的 `input_tokens`。
+- **输出 Token**：官方返回的 `output_tokens`。
+- **缓存输入 Token**：官方返回的 `input_cached_tokens`，已包含在输入 Token 中，不能重复加入输入与输出总量。
+- **请求数**：官方返回的 `num_model_requests`。
+
+范围是官方 completions 用量接口覆盖的模型请求，字段可能包含该接口汇总的文本、音频或图像 Token。它不等于全部 API 端点的总用量；图像生成、嵌入、音频等独立用量接口不在本窗口的查询范围内。以 OpenAI 官方接口当前定义为准。
+
+此窗口不显示 API 余额、可用额度、剩余 Token 或 ChatGPT 订阅用量，也不估算金额。官方统计可能延迟；只有查询成功且返回的范围中没有记录时才显示零。缺少凭据、失败或必需字段未知时显示配置提示、错误或未知状态。
+
 ## 异常状态
 
 | 提示 | 处理方法 |
 | --- | --- |
 | 未找到 Codex / 登录失败 | 安装 Codex，完成登录后重启工具 |
 | DeepSeek 密钥无效或无权访问 | 在“设置”中更新自己的 API Key |
+| OpenAI API Key 登录失败 | 核对普通 Key 是否有效、组织/项目权限及 `GET /v1/models` 读取权限 |
+| OpenAI 待配置历史用量 | 在设置中补齐组织 Admin API Key 与对应的 API Key ID |
+| OpenAI 管理密钥无效或权限不足 | 由组织所有者确认 Admin Key，并核对目标 Key 是否属于该组织 |
+| OpenAI 用量为零但官方有记录 | 核对准确的 Key ID、北京时间统计范围，并等待官方统计更新 |
 | 无法解密密钥 | 在当前 Windows 用户下重新保存 API Key |
 | 用户数据目录访问被拒绝 | 在设置中查看目录，检查该目录权限及安全软件的拦截记录 |
 | Windows 用户加密失败 | 使用平常的 Windows 账户正常登录后重试；旧密钥无法解密时重新输入 |
@@ -89,14 +118,17 @@ ChatGPT 浮窗的 **重置额度 (N)** 显示当前账号的官方剩余次数�
 
 - [OpenAI：Codex App Server](https://learn.chatgpt.com/docs/app-server)
 - [OpenAI：订阅用量](https://learn.chatgpt.com/docs/pricing)
+- [OpenAI：组织管理 API 与 Admin API Key](https://developers.openai.com/api/reference/administration/overview)
+- [OpenAI：Completions 用量接口](https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/usage/methods/completions)
+- [OpenAI：列出项目 API Key](https://developers.openai.com/api/reference/resources/admin/subresources/organization/subresources/projects/subresources/api_keys/methods/list)
 - [DeepSeek：余额接口](https://api-docs.deepseek.com/api/get-user-balance/)
 
 ## 从 v1.0.0 / v1.1.0 升级
 
-先从托盘退出程序，再将 v1.1.2 解压到原目录，覆盖运行文件并保留 `data/`。也可在安装助手中选择原目录。第一次启动会把旧设置及当前 Windows 用户可解密的密钥复制到当前数据目录；旧文件保留，已有新版配置不会被旧数据覆盖。
+先从托盘退出程序，再将 v2.0.0 解压到原目录，覆盖运行文件并保留 `data/`。也可在安装助手中选择原目录。第一次启动会把旧设置及当前 Windows 用户可解密的密钥复制到当前数据目录；旧文件保留，已有新版配置不会被旧数据覆盖。
 
 迁移后位置、开关、刷新间隔、主题与尺寸继续有效。若要更换安装位置，请先在原目录启动一次完成迁移。曾用其他管理员账户保存的 Key 可能无法解密，按提示重新输入即可；正常使用无需管理员运行。
 
-从 v1.1.1 升级时继续读取已保存的用户配置。安装和设置中都可进一步选择数据目录。
+从 v1.1.1 / v1.1.2 升级时继续读取已保存的用户配置。安装和设置中都可进一步选择数据目录。GPT、DeepSeek 的位置、显示状态等设置保留，新增 OpenAI 窗口默认关闭；完成 OpenAI API Key 登录后启用。
 
-版本：1.1.2
+版本：2.0.0

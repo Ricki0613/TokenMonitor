@@ -15,19 +15,26 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("1.1.2.0")]
-[assembly: AssemblyFileVersion("1.1.2.0")]
-[assembly: AssemblyInformationalVersion("1.1.2")]
+[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyFileVersion("2.0.0.0")]
+[assembly: AssemblyInformationalVersion("2.0.0")]
 
 namespace TokenMonitor {
     public sealed class MonitorApp : Application {
         public Preferences Prefs;
         public MainView Main;
         public UsageView Gpt,Deep;
+        public OpenAiView OpenAi;
         readonly CodexProvider codex=new CodexProvider();
         readonly DeepProvider deep=new DeepProvider();
+        readonly OpenAiProvider openAi=new OpenAiProvider();
         public GptSnapshot GptData;
         public DeepSnapshot DeepData;
+        public OpenAiSnapshot OpenAiData;
+        public string OpenAiError;
+        bool openAiBusy;
+        int openAiFailures;
+        DateTimeOffset nextOpenAi=DateTimeOffset.MinValue,openAiCooldown=DateTimeOffset.MinValue;
         public string GptError,DeepError;
         bool gptBusy,deepBusy,quitting,changingStorage;
         DateTimeOffset nextGpt=DateTimeOffset.MinValue,nextDeep=DateTimeOffset.MinValue;
@@ -45,29 +52,35 @@ namespace TokenMonitor {
             using(var stream=typeof(MonitorApp).Assembly.GetManifestResourceStream("TokenMonitor.Theme.xaml")) Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
             if(!smoke)LocalStorage.Initialize();
             Prefs=smoke?new Preferences():Preferences.Load();
+            if(offline)Prefs.OpenAi=true;
             Appearance.Apply(Prefs.Appearance);
             if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
             if(!smoke&&!string.IsNullOrEmpty(LocalStorage.Notice))Main.Subtitle.Text="本机配置需要处理，请打开设置查看";
             Gpt=new UsageView(this,true);Deep=new UsageView(this,false);
+            OpenAi=new OpenAiView(this);
+            OpenAi.RestoreSize(Prefs.OpenAiWidth,Prefs.OpenAiHeight,Prefs.OpenAiAutoHeight);
             Gpt.RestoreSize(Prefs.GptWidth,Prefs.GptHeight,Prefs.GptAutoHeight);Deep.RestoreSize(Prefs.DeepWidth,Prefs.DeepHeight,Prefs.DeepAutoHeight);
-            Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();
+            Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();OpenAi.FitHeight();
             var area=SystemParameters.WorkArea;
             Main.Place(Prefs.MainX,Prefs.MainY,area.Left+40,area.Top+65);
             Gpt.Place(Prefs.GptX,Prefs.GptY,Math.Max(area.Left,area.Right-390),area.Top+30);
             bool stack=area.Height>=Gpt.Height+Deep.Height+50;
             Deep.Place(Prefs.DeepX,Prefs.DeepY,Math.Max(area.Left,area.Right-390-(stack?0:370)),stack?area.Top+Gpt.Height+35:area.Top+30);
-            Main.Show();if(Prefs.Gpt)Gpt.Show();if(Prefs.Deep)Deep.Show();
+            OpenAi.Place(Prefs.OpenAiX,Prefs.OpenAiY,Math.Max(area.Left,area.Right-770),area.Top+30);
+            Main.Show();if(Prefs.Gpt)Gpt.Show();if(Prefs.Deep)Deep.Show();if(Prefs.OpenAi)OpenAi.Show();
             saveTimer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(400)};
             saveTimer.Tick+=(s,a)=>{saveTimer.Stop();Save();};
             Main.LocationChanged+=(s,a)=>QueueSave();Gpt.LocationChanged+=(s,a)=>QueueSave();Deep.LocationChanged+=(s,a)=>QueueSave();
             Gpt.GeometryChanged+=QueueSave;Deep.GeometryChanged+=QueueSave;
+            OpenAi.LocationChanged+=(s,a)=>QueueSave();OpenAi.GeometryChanged+=QueueSave;
             if(!smoke)MakeTray();
             timer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(1)};
             timer.Tick+=async(s,a)=>{
                 UpdateLabels();var now=DateTimeOffset.UtcNow;
                 if(Prefs.Gpt&&!gptBusy&&now>=nextGpt)await RefreshGpt(false);
                 if(Prefs.Deep&&!deepBusy&&now>=nextDeep)await RefreshDeep(false);
+                if(Prefs.OpenAi&&!openAiBusy&&now>=nextOpenAi)await RefreshOpenAi(false);
             };
             if(!smoke)timer.Start();
             Dispatcher.BeginInvoke(new Action(async()=>{
@@ -85,19 +98,45 @@ namespace TokenMonitor {
             menu.Items.Add("打开控制面板",null,(s,e)=>Dispatcher.Invoke(new Action(ShowControl)));
             menu.Items.Add("显示 / 隐藏 GPT",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.GptSwitch.IsChecked=!Prefs.Gpt)));
             menu.Items.Add("显示 / 隐藏 DeepSeek",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.DeepSwitch.IsChecked=!Prefs.Deep)));
+            menu.Items.Add("显示 / 隐藏 OpenAI API",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.OpenAiSwitch.IsChecked=!Prefs.OpenAi)));
             menu.Items.Add("刷新用量",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>await RefreshAll(true))));
             menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出",null,(s,e)=>Dispatcher.Invoke(new Action(Quit)));
-            tray=new Forms.NotifyIcon {Text="Token Monitor · GPT / DeepSeek",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
+            tray=new Forms.NotifyIcon {Text="Token Monitor · GPT / DeepSeek / OpenAI API",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
             tray.DoubleClick+=(s,e)=>Dispatcher.Invoke(new Action(ShowControl));
         }
         public void ShowControl() {Main.Show();Main.WindowState=WindowState.Normal;Main.Activate();}
         public void SetGpt(bool show) {Prefs.Gpt=show;if(show){Gpt.Show();RefreshGpt(true);}else Gpt.Hide();Save();UpdateLabels();}
         public void SetDeep(bool show) {Prefs.Deep=show;if(show){Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
         public void ResetDeepCooldown() {deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.MinValue;deepFailures=0;}
+        public void SetOpenAi(bool show) {Prefs.OpenAi=show;if(show){OpenAi.Show();RefreshOpenAi(true);}else OpenAi.Hide();Save();UpdateLabels();}
+        public void ResetOpenAiCooldown() {openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.MinValue;openAiFailures=0;}
+        public async Task ConnectOpenAi(OpenAiConnection connection) {
+            if(quitting||changingStorage)throw new ProviderException("请等待数据目录切换完成后再登录。");
+            OpenAiSecretStore.Validate(connection);
+            // Keep the old connection and snapshot until validation and persistence succeed.
+            while(openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
+            if(quitting||changingStorage)throw new ProviderException("请等待数据目录切换完成后再登录。");
+            openAiBusy=true;
+            OpenAiSnapshot snapshot=null;
+            try {
+                await openAi.ValidateApiKey(connection.ApiKey);
+                if(!string.IsNullOrEmpty(connection.AdminKey)&&!string.IsNullOrEmpty(connection.ApiKeyId))snapshot=await openAi.Fetch(connection);
+                OpenAiSecretStore.Save(connection);
+                OpenAiData=snapshot;
+                OpenAiError=snapshot==null?"API Key 已登录；请在设置中补充 Admin API Key 和 API Key ID 以读取历史用量。":null;
+                ResetOpenAiCooldown();
+                nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(snapshot==null?300:Prefs.Interval);
+                if(snapshot==null)openAiCooldown=nextOpenAi;
+                Main.OpenAiSwitch.IsChecked=true;
+            } finally {
+                openAiBusy=false;
+                if(!quitting){OpenAi.Render(OpenAiData,OpenAiError,false);UpdateLabels();}
+            }
+        }
         public async Task RefreshAll(bool force) {
             if(quitting)return;
             Main.Refresh.IsEnabled=false;
-            try {await Task.WhenAll(Prefs.Gpt?RefreshGpt(force):Task.FromResult(0),Prefs.Deep?RefreshDeep(force):Task.FromResult(0));}
+            try {await Task.WhenAll(Prefs.Gpt?RefreshGpt(force):Task.FromResult(0),Prefs.Deep?RefreshDeep(force):Task.FromResult(0),Prefs.OpenAi?RefreshOpenAi(force):Task.FromResult(0));}
             finally {if(!quitting)Main.Refresh.IsEnabled=true;}
         }
         static string ErrorMessage(Exception e,bool gpt) {
@@ -156,7 +195,7 @@ namespace TokenMonitor {
             finally {deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
         }
         public void UpdateLabels() {
-            if(Main==null||Gpt==null||Deep==null)return;
+            if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
             string summary="等待同步";
             if(GptData!=null) {
                 var group=GptData.Groups.FirstOrDefault(x=>x.Id=="codex")??GptData.Groups[0];
@@ -165,52 +204,83 @@ namespace TokenMonitor {
             Main.GptInfo.Text=!Prefs.Gpt?"已隐藏 · 暂停刷新":GptError!=null?"连接异常 · 打开悬浮窗查看":summary;
             Main.DeepInfo.Text=!Prefs.Deep?"已隐藏 · 暂停刷新":DeepError!=null?"连接异常 · 打开悬浮窗查看":DeepData!=null?"可用余额 "+string.Join(" / ",DeepData.Balances.Select(x=>x.Format(x.Total))):"等待同步";
             Gpt.UpdateStatus(GptData,GptError,gptBusy);Deep.UpdateStatus(DeepData,DeepError,deepBusy);
+            Main.OpenAiInfo.Text=!Prefs.OpenAi?"已隐藏 · 暂停刷新":OpenAiError!=null?"需要处理 · 打开悬浮窗查看":OpenAiData!=null?"本月 "+OpenAiData.Month.TotalTokens.ToString("N0")+" tokens":"等待同步";
+            OpenAi.UpdateStatus(OpenAiData,OpenAiError,openAiBusy);
+        }
+        public async Task RefreshOpenAi(bool force) {
+            var now=DateTimeOffset.UtcNow;
+            if(quitting||changingStorage||openAiBusy||!Prefs.OpenAi||now<openAiCooldown||(!force&&now<nextOpenAi))return;
+            openAiBusy=true;OpenAi.UpdateStatus(OpenAiData,OpenAiError,true);
+            try {OpenAiData=offline?SampleOpenAi():await openAi.Fetch(OpenAiSecretStore.Read());OpenAiError=null;openAiFailures=0;openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            catch(Exception e) {OpenAiError=e is InvalidOperationException?"OpenAI 配置不可用，请在设置中重新登录。":ErrorMessage(e,false);openAiFailures++;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,openAiFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)openAiCooldown=nextOpenAi;}
+            finally {openAiBusy=false;if(!quitting){OpenAi.Render(OpenAiData,OpenAiError,false);UpdateLabels();}}
         }
         public void Save() {
-            if(smoke||quitting||Main==null||Gpt==null||Deep==null)return;
+            if(smoke||quitting||Main==null||Gpt==null||Deep==null||OpenAi==null)return;
             Prefs.MainX=Main.Left;Prefs.MainY=Main.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
             Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
             Prefs.DeepWidth=Deep.Width;Prefs.DeepHeight=Deep.Height;Prefs.DeepAutoHeight=Deep.AutoHeight;
+            Prefs.OpenAiX=OpenAi.Left;Prefs.OpenAiY=OpenAi.Top;Prefs.OpenAiWidth=OpenAi.Width;Prefs.OpenAiHeight=OpenAi.Height;Prefs.OpenAiAutoHeight=OpenAi.AutoHeight;
             try {Prefs.Save();}catch(Exception e) {LocalStorage.Notice=LocalStorage.Explain(e,"保存窗口配置");Main.Subtitle.Text="配置保存失败，请打开设置查看";}
         }
         public async Task ChangeDataDirectory(string destination) {
             if(changingStorage)throw new InvalidOperationException("已有数据目录切换正在进行");
             changingStorage=true;
             try {
-                while(gptBusy||deepBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
+                while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v1.1.2";
+                Main.Subtitle.Text="用量，随时可见  ·  v2.0.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
             if(quitting)return;Save();quitting=true;
             if(timer!=null)timer.Stop();if(saveTimer!=null)saveTimer.Stop();if(!smoke)SystemEvents.UserPreferenceChanged-=SystemAppearanceChanged;
             if(tray!=null){tray.Visible=false;tray.Dispose();}
-            codex.Dispose();deep.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=true;Shutdown();
+            codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
         }
         async Task RunSmoke() {
             Directory.CreateDirectory(smokeFolder);
             var checks=new Dictionary<string,object>();
             checks["gpt_live"]=GptData!=null;checks["deepseek_live"]=DeepData!=null;
             checks["gpt_error"]=GptError;checks["deepseek_error"]=DeepError;
+            if(offline)checks["openai_sample_loaded"]=OpenAiData!=null&&OpenAiError==null;
             Main.GptSwitch.IsChecked=false;checks["gpt_switch_hides_only_gpt"]=!Gpt.IsVisible&&Deep.IsVisible;
             Main.GptSwitch.IsChecked=true;Main.DeepSwitch.IsChecked=false;checks["deepseek_switch_hides_only_deepseek"]=Gpt.IsVisible&&!Deep.IsVisible;
             Main.DeepSwitch.IsChecked=true;checks["floating_topmost"]=Gpt.Topmost&&Deep.Topmost;
+            if(offline) {
+                Main.OpenAiSwitch.IsChecked=false;checks["openai_switch_hides_only_openai"]=!OpenAi.IsVisible&&Gpt.IsVisible&&Deep.IsVisible;
+                Main.OpenAiSwitch.IsChecked=true;checks["openai_topmost"]=OpenAi.IsVisible&&OpenAi.Topmost;
+                OpenAi.Close();checks["close_openai_updates_switch"]=Main.OpenAiSwitch.IsChecked==false&&!OpenAi.IsVisible;
+                Main.OpenAiSwitch.IsChecked=true;
+            }
             Gpt.Close();checks["close_gpt_updates_switch"]=Main.GptSwitch.IsChecked==false&&!Gpt.IsVisible;
             Main.GptSwitch.IsChecked=true;Main.Hide();checks["controller_can_hide"]=!Main.IsVisible&&Gpt.IsVisible&&Deep.IsVisible;ShowControl();
             await Task.Delay(1500);
-            Main.UpdateLayout();Gpt.UpdateLayout();Deep.UpdateLayout();
+            Main.UpdateLayout();Gpt.UpdateLayout();Deep.UpdateLayout();OpenAi.UpdateLayout();
             checks["main_content_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
             checks["gpt_content_fits"]=Gpt.Scroll.ExtentHeight<=Gpt.Scroll.ViewportHeight+0.5;
             checks["deep_content_fits"]=Deep.Scroll.ExtentHeight<=Deep.Scroll.ViewportHeight+0.5;
             UI.SaveImage(Main,""+Path.Combine(smokeFolder,"control.png"));
             UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt.png"));
             UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek.png"));
+            if(offline) {
+                checks["openai_content_fits"]=OpenAi.Scroll.ExtentHeight<=OpenAi.Scroll.ViewportHeight+0.5;
+                UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai.png"));
+                OpenAi.Render(OpenAiData,"网络连接失败，稍后自动重试",false);OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-stale.png"));
+                OpenAi.Render(null,"API Key 已登录；请补充 Admin API Key 和 API Key ID。",false);OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-needs-admin.png"));
+                OpenAi.Render(OpenAiData,null,false);
+            }
             if(GptData!=null) {
                 Gpt.Render(GptData,"网络连接失败，稍后自动重试",false);Gpt.UpdateLayout();UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-stale.png"));
             }
-            var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));settings.Exiting=true;settings.Close();
+            if(offline)OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-ui-openai-key",AdminKey="sk-admin-test-only-ui-openai-key",ApiKeyId="key_ui_test"});
+            var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
+            if(offline) {
+                OpenAiUiTests.Run(settings,checks);
+                settings.Scroll.ScrollToEnd();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings-bottom.png"));
+            }
+            settings.Exiting=true;settings.Close();
             if(offline) {
                 Gpt.Render(GptData,null,false);Main.FitToContent();Gpt.FitToContent();Deep.FitToContent();
                 foreach(string theme in new[]{"light","dark","system"}) {
@@ -219,17 +289,21 @@ namespace TokenMonitor {
                     UI.SaveImage(Main,Path.Combine(smokeFolder,"control-"+theme+".png"));
                     UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-"+theme+".png"));
                     UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+theme+".png"));
+                    OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-"+theme+".png"));
                     var dialog=new SettingsView(this){Owner=Main};dialog.Show();dialog.FitToContent();dialog.UpdateLayout();UI.SaveImage(dialog,Path.Combine(smokeFolder,"settings-"+theme+".png"));dialog.Exiting=true;dialog.Close();
                     checks[theme+"_ink_updates"]=((System.Windows.Media.SolidColorBrush)Main.GptInfo.Foreground).Color==((System.Windows.Media.SolidColorBrush)Resources["MutedBrush"]).Color;
                 }
                 Appearance.Apply("light");
                 foreach(double width in new[]{300.0,368.0,660.0,940.0}) {
-                    Gpt.Width=width;Deep.Width=width;Gpt.FitToContent();Deep.FitToContent();
+                    Gpt.Width=width;Deep.Width=width;OpenAi.Width=width;Gpt.FitToContent();Deep.FitToContent();OpenAi.FitToContent();
                     await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();Deep.UpdateLayout();
                     UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-"+width+".png"));UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+width+".png"));
                     checks["gpt_fits_"+width]=Gpt.Scroll.ExtentHeight<=Gpt.Scroll.ViewportHeight+1;
                     checks["deep_fits_"+width]=Deep.Scroll.ExtentHeight<=Deep.Scroll.ViewportHeight+1;
                     checks["gpt_bottom_gap_"+width]=Math.Abs(Gpt.Scroll.ViewportHeight-Gpt.Scroll.ExtentHeight)<2;
+                    OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-"+width+".png"));
+                    checks["openai_fits_"+width]=OpenAi.Scroll.ExtentHeight<=OpenAi.Scroll.ViewportHeight+1;
+                    checks["openai_bottom_gap_"+width]=Math.Abs(OpenAi.Scroll.ViewportHeight-OpenAi.Scroll.ExtentHeight)<2;
                 }
                 Gpt.Width=300;Gpt.ResizeBy(0,1,0,-1000);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();
                 checks["short_window_scrolls"]=Gpt.Scroll.ExtentHeight>Gpt.Scroll.ViewportHeight;
@@ -252,6 +326,12 @@ namespace TokenMonitor {
             data.Groups[0].Windows[0].Reset=DateTimeOffset.UtcNow.AddHours(3);data.Groups[0].Windows[1].Reset=DateTimeOffset.UtcNow.AddDays(4);return data;
         }
         static DeepSnapshot SampleDeep() {return DeepSnapshot.Parse(Json.Read("{\"is_available\":true,\"balance_infos\":[{\"currency\":\"CNY\",\"total_balance\":\"51.7801\",\"granted_balance\":\"1.00\",\"topped_up_balance\":\"50.7801\"},{\"currency\":\"USD\",\"total_balance\":\"0.10\",\"granted_balance\":\"0\",\"topped_up_balance\":\"0.10\"}]}"));}
+        static OpenAiSnapshot SampleOpenAi() {
+            var now=DateTimeOffset.UtcNow;var china=UI.China(now);
+            return new OpenAiSnapshot {ApiKeyId="key_demo",Fetched=now,Start=new DateTimeOffset(china.Year,china.Month,1,0,0,0,TimeSpan.FromHours(8)).ToUniversalTime(),End=now,
+                Today=new OpenAiTokenTotals {InputTokens=125400,OutputTokens=24800,CachedInputTokens=68200,Requests=42},
+                Month=new OpenAiTokenTotals {InputTokens=4285700,OutputTokens=813240,CachedInputTokens=1928000,Requests=1236}};
+        }
     }
     public static class Program {
         const string MutexName="Local\\TokenMonitor.Ricki.v1";
@@ -286,9 +366,12 @@ namespace TokenMonitor {
             LocalStorage.Initialize();
             var result=new Dictionary<string,object>();
             result["data_directory"]=Paths.Data;
-            using(var gpt=new CodexProvider())using(var deep=new DeepProvider()) {
+            using(var gpt=new CodexProvider())using(var deep=new DeepProvider())using(var openAi=new OpenAiProvider()) {
                 try {var s=await gpt.Fetch();result["gpt"]=new {ok=true,groups=s.Groups.Count,windows=s.Groups.Sum(x=>x.Windows.Count)};}catch(Exception e){result["gpt"]=new {ok=false,error=e.GetType().Name};}
                 try {var s=await deep.Fetch();result["deepseek"]=new {ok=true,currencies=s.Balances.Select(x=>x.Currency).ToArray()};}catch(Exception e){result["deepseek"]=new {ok=false,error=e.GetType().Name};}
+                if(File.Exists(Paths.OpenAiKey)) {
+                    try {var s=await openAi.Fetch(OpenAiSecretStore.Read());result["openai"]=new {ok=true,today_tokens=s.Today.TotalTokens,month_tokens=s.Month.TotalTokens};}catch(Exception e){result["openai"]=new {ok=false,error=e.GetType().Name};}
+                } else result["openai"]=new {configured=false};
             }
             File.WriteAllText(report,Json.Write(result));return 0;
         }

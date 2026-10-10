@@ -30,7 +30,7 @@ namespace TokenMonitor {
         static void Remember(string path) {
             using(var key=Registry.CurrentUser.CreateSubKey(@"Software\TokenMonitor"))key.SetValue("DataDirectory",path,RegistryValueKind.String);
         }
-        // Commit the location only after both files are copied and verified. The source remains a backup.
+        // Commit the location only after all files are copied and verified. The source remains a backup.
         public static void Relocate(string destination,Preferences preferences,Action<string> remember=null) {
             destination=Normalize(destination);
             string source=Normalize(Paths.Data);
@@ -41,13 +41,19 @@ namespace TokenMonitor {
             byte[] encrypted=null;
             try {encrypted=File.ReadAllBytes(Path.Combine(source,"deepseek.key"));}
             catch(FileNotFoundException) {}
+            byte[] openAiEncrypted=null;
+            try {openAiEncrypted=File.ReadAllBytes(Path.Combine(source,"openai.key"));}
+            catch(FileNotFoundException) {}
             byte[] settings=Encoding.UTF8.GetBytes(Json.Write(preferences));
             Directory.CreateDirectory(destination);
             string settingsPath=Path.Combine(destination,"settings.json"),keyPath=Path.Combine(destination,"deepseek.key");
             Atomic.Write(settingsPath,settings);
             if(encrypted!=null)Atomic.Write(keyPath,encrypted);
+            string openAiPath=Path.Combine(destination,"openai.key");
+            if(openAiEncrypted!=null)Atomic.Write(openAiPath,openAiEncrypted);
             if(!File.ReadAllBytes(settingsPath).SequenceEqual(settings)||
-                (encrypted!=null&&!File.ReadAllBytes(keyPath).SequenceEqual(encrypted)))throw new IOException("数据校验失败");
+                (encrypted!=null&&!File.ReadAllBytes(keyPath).SequenceEqual(encrypted))||
+                (openAiEncrypted!=null&&!File.ReadAllBytes(openAiPath).SequenceEqual(openAiEncrypted)))throw new IOException("数据校验失败");
             (remember??Remember)(destination);
             if(Paths.TestDataDirectory!=null)Paths.TestDataDirectory=destination;else current=destination;
             LoadWarning=null;LocalStorage.Notice=null;

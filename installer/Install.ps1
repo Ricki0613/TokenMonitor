@@ -12,7 +12,7 @@ try {
     if (-not $framework -or $framework.Release -lt 528040) { throw 'Please install .NET Framework 4.8, then run Install.cmd again. See START_HERE.zh-CN.md.' }
     if (-not $Destination) { $Destination = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\TokenMonitor' }
     if ($Interactive) {
-        Write-Host 'Token Monitor v1.1.2'
+        Write-Host 'Token Monitor v2.0.0'
         Write-Host '安装程序和创建快捷方式。日常运行不需要管理员权限。'
         Write-Host ('默认安装位置：' + $Destination)
         $chosen = Read-Host '按 Enter 使用默认位置，或输入自定义完整路径'
@@ -62,7 +62,7 @@ try {
             $shortcut.TargetPath = $executable
             $shortcut.WorkingDirectory = $Destination
             $shortcut.IconLocation = (Join-Path $Destination 'TokenMonitor.ico') + ',0'
-            $shortcut.Description = 'Token Monitor - GPT / DeepSeek'
+            $shortcut.Description = 'Token Monitor - GPT / DeepSeek / OpenAI API'
             $shortcut.Save()
         } catch { $shortcutWarnings += $folder }
     }
