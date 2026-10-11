@@ -15,12 +15,12 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("2.0.0.0")]
-[assembly: AssemblyFileVersion("2.0.0.0")]
-[assembly: AssemblyInformationalVersion("2.0.0")]
+[assembly: AssemblyVersion("2.1.0.0")]
+[assembly: AssemblyFileVersion("2.1.0.0")]
+[assembly: AssemblyInformationalVersion("2.1.0")]
 
 namespace TokenMonitor {
-    public sealed class MonitorApp : Application {
+    public sealed partial class MonitorApp : Application {
         public Preferences Prefs;
         public MainView Main;
         public UsageView Gpt,Deep;
@@ -75,6 +75,7 @@ namespace TokenMonitor {
             Gpt.GeometryChanged+=QueueSave;Deep.GeometryChanged+=QueueSave;
             OpenAi.LocationChanged+=(s,a)=>QueueSave();OpenAi.GeometryChanged+=QueueSave;
             if(!smoke)MakeTray();
+            StartUpdates();
             timer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(1)};
             timer.Tick+=async(s,a)=>{
                 UpdateLabels();var now=DateTimeOffset.UtcNow;
@@ -99,6 +100,7 @@ namespace TokenMonitor {
             menu.Items.Add("显示 / 隐藏 GPT",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.GptSwitch.IsChecked=!Prefs.Gpt)));
             menu.Items.Add("显示 / 隐藏 DeepSeek",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.DeepSwitch.IsChecked=!Prefs.Deep)));
             menu.Items.Add("显示 / 隐藏 OpenAI API",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.OpenAiSwitch.IsChecked=!Prefs.OpenAi)));
+            menu.Items.Add("检查更新",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>{ShowControl();await CheckUpdates(true);})));
             menu.Items.Add("刷新用量",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>await RefreshAll(true))));
             menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出",null,(s,e)=>Dispatcher.Invoke(new Action(Quit)));
             tray=new Forms.NotifyIcon {Text="Token Monitor · GPT / DeepSeek / OpenAI API",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
@@ -230,11 +232,12 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v2.0.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v2.1.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
             if(quitting)return;Save();quitting=true;
+            if(updateTimer!=null)updateTimer.Stop();updates.Dispose();
             if(timer!=null)timer.Stop();if(saveTimer!=null)saveTimer.Stop();if(!smoke)SystemEvents.UserPreferenceChanged-=SystemAppearanceChanged;
             if(tray!=null){tray.Visible=false;tray.Dispose();}
             codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
@@ -273,6 +276,21 @@ namespace TokenMonitor {
             }
             if(GptData!=null) {
                 Gpt.Render(GptData,"网络连接失败，稍后自动重试",false);Gpt.UpdateLayout();UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-stale.png"));
+            }
+            if(offline) {
+                checks["updates_disabled_in_offline_tests"]=updateTimer==null;
+                Main.RenderUpdate(null,"当前已是最新版本 v2.1.0");
+                checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
+                var demo=UpdateClient.Parse(UpdateTests.Release("v2.2.0"));
+                Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v2.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
+                UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
+                Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v2.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
+                checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
+                Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
             }
             if(offline)OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-ui-openai-key",AdminKey="sk-admin-test-only-ui-openai-key",ApiKeyId="key_ui_test"});
             var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));

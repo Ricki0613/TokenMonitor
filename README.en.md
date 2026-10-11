@@ -4,17 +4,26 @@
 
 **Keep Codex / ChatGPT Work limits, DeepSeek API balances and OpenAI API token usage visible on your Windows desktop.**
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.0.0/TokenMonitor-v2.0.0-windows-x64.zip) · [v2.0.0 notes](docs/RELEASE_v2.0.0.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.1.0/TokenMonitor-v2.1.0-windows-x64.zip) · [v2.1.0 notes](docs/RELEASE_v2.1.0.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+
+> **For in-app update checks, choose v2.1.0 or later.** Older versions require a one-time manual upgrade.
 
 ## Recent releases
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| [v2.1.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.1.0) | 2026-10-11 | Automatic and manual update checks, tray notifications and release download links |
 | [v2.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.0.0) | 2026-10-10 | OpenAI API Key sign-in and an independent window for today's and this month's token usage and request counts by API Key ID |
 | [v1.1.2](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.2) | 2026-10-08 | Choose a data directory during installation or in settings, with verified migration and persistence across restarts |
 | [v1.1.1](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.1) | 2026-10-08 | Per-user data storage, legacy migration, installation helper, actionable save errors and setup guide |
 | [v1.1.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.0) | 2026-10-07 | Resizable windows, responsive cards, themes, official quota reset and compact height |
 | [v1.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.0.0) | 2026-10-07 | Initial dual-window monitor with refresh, tray and encrypted credentials |
+
+## Update checks (v2.1.0+)
+
+Checks the latest stable GitHub Release at startup and every 6 hours after success. A new version appears in the control panel with one tray notification per version per run. Check manually from the panel or tray (requests are at least one minute apart). Failures retry after one hour and do not interrupt usage monitoring. The download button opens the project release page; exit the app and install the ZIP manually, preserving your data directory.
+
+Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the Windows ZIP and mark it **Latest**. Drafts, prereleases and Git tags without a release do not notify users. Checks send no credentials, settings or account usage to GitHub; GitHub receives ordinary request information such as IP address and app version.
 
 ## Features
 
@@ -31,7 +40,7 @@
 
 ## Quick start
 
-1. Download [TokenMonitor-v2.0.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.0.0/TokenMonitor-v2.0.0-windows-x64.zip) and extract the entire archive.
+1. Download [TokenMonitor-v2.1.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.1.0/TokenMonitor-v2.1.0-windows-x64.zip) and extract the entire archive.
 2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
 4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and is enabled after successful sign-in.
@@ -56,9 +65,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-Output: `build/`. The 58 offline self-tests cover credential storage, legacy migration, safe directory switching, OpenAI usage parsing and failure states. The 54 UI checks use mock data. These tests require no real accounts or API keys, send no model inference requests and never consume reset credits. UI screenshots are written to `build/ui-test-*/`. Runtime data and credentials are excluded from Git.
+Output: `build/`. The 65 offline self-tests cover credential storage, legacy migration, safe directory switching, OpenAI usage parsing and failure states. The 60 UI checks use mock data. These tests require no real accounts or API keys, send no model inference requests and never consume reset credits. UI screenshots are written to `build/ui-test-*/`. Runtime data and credentials are excluded from Git.
 
-The release is unsigned. Automatic startup and automatic updates are not implemented. Service-side updates or API changes may affect availability.
+The release is unsigned. Automatic startup and automatic download/install are not implemented. Update checks require v2.1.0 or later. Service-side updates or API changes may affect availability.
 
 ## Contribute
 

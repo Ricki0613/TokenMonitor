@@ -20,3 +20,7 @@
 提交代码或反馈问题前，请检查差异内容。不要在 Issue、PR、截图、日志或示例配置中粘贴真实密钥。`.gitignore` 只能防止默认加入被忽略的文件，无法清除已经提交的历史内容。
 
 如果密钥被错误上传，先到相应服务后台撤销或轮换密钥，再处理仓库中的暴露记录。仅在新提交里删除文件并不能使旧密钥失效。
+
+## Update checks
+
+From v2.1.0, the app anonymously requests this repository's latest stable GitHub Release at startup and every six hours after success (one-hour retry on failure). No API keys, settings or account usage are sent. GitHub receives standard request metadata such as the IP address and app version. Release links are constructed for this repository from validated numeric version tags; remote URLs are not executed. Downloads and installation remain manual.

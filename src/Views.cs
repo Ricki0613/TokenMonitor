@@ -152,7 +152,9 @@ namespace TokenMonitor {
         public readonly TextBlock GptInfo,DeepInfo,OpenAiInfo;
         public readonly ComboBox Interval;
         public readonly Button Refresh;
-        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v2.0.0",UI.Green,410,490,false) {
+        public readonly Button CheckUpdate,DownloadUpdate;
+        public readonly TextBlock UpdateStatus;
+        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v2.1.0",UI.Green,410,490,false) {
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
             OpenAiInfo=UI.Text("在设置中连接 API Key",11.5,UI.Muted);
@@ -177,7 +179,18 @@ namespace TokenMonitor {
             actions.Children.Add(Refresh);var settings=UI.Button("设置",()=>new SettingsView(app){Owner=this}.ShowDialog());settings.Margin=new Thickness(8,0,0,0);actions.Children.Add(settings);
             var exit=UI.Button("退出",()=>app.Quit());Body.Children.Add(UI.Row(actions,exit));
             var note=UI.Text("浮窗可拖动、缩放 · 关闭面板后仍在托盘运行",10.5,UI.Muted);note.Margin=new Thickness(1,13,0,0);Body.Children.Add(note);
+            var updatePanel=new StackPanel {Margin=new Thickness(0,14,0,0)};
+            UpdateStatus=UI.Text("启动时及每 6 小时自动检查更新",11,UI.Muted);updatePanel.Children.Add(UpdateStatus);
+            var updateActions=new WrapPanel {Margin=new Thickness(0,8,0,0)};
+            CheckUpdate=UI.Button("检查更新",async()=>await app.CheckUpdates(true));updateActions.Children.Add(CheckUpdate);
+            DownloadUpdate=UI.Button("发布页 ↗",app.OpenUpdate);DownloadUpdate.Margin=new Thickness(8,0,0,0);updateActions.Children.Add(DownloadUpdate);
+            updatePanel.Children.Add(updateActions);Body.Children.Add(updatePanel);
             CloseAction=()=>Hide();
+        }
+        public void RenderUpdate(AvailableRelease release,string message) {
+            UpdateStatus.Text=(release==null?"":"发现新版本 "+release.Tag+"，可下载更新。")+(message==null?"":(release==null?"":"\n")+message);
+            DownloadUpdate.Content=release==null?"发布页 ↗":"下载更新 ↗";
+            FitHeight();
         }
         static Border ServiceCard(string name,string tag,TextBlock info,CheckBox toggle,string color) {
             var words=new StackPanel();var header=new StackPanel { Orientation=Orientation.Horizontal };

@@ -6,16 +6,19 @@
 
 A lightweight Windows floating usage monitor for Codex / ChatGPT Work, DeepSeek and OpenAI API. Built with C# and WPF.
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.0.0/TokenMonitor-v2.0.0-windows-x64.zip) · [v2.0.0 说明](docs/RELEASE_v2.0.0.md) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.1.0/TokenMonitor-v2.1.0-windows-x64.zip) · [v2.1.0 说明](docs/RELEASE_v2.1.0.md) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-2.0.0-10A37F)
+![Version](https://img.shields.io/badge/version-2.1.0-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+
+> **需要应用内更新检测，请选择 v2.1.0 及以后版本。** v2.0.0 及更早版本没有更新检测，需要先手动升级一次。
 
 ## 最近更新
 
 | 版本 | 日期 | 主要变化 |
 | --- | --- | --- |
+| [v2.1.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.1.0) | 2026-10-11 | 新增启动及定时更新检测、托盘通知、手动检查和 GitHub 发布页下载入口 |
 | [v2.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.0.0) | 2026-10-10 | 新增 OpenAI API Key 登录及独立用量浮窗，按指定 Key ID 展示今日、本月 Token 和请求数 |
 | [v1.1.2](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.2) | 2026-10-08 | 安装助手与设置中均可自选数据目录，自动复制校验配置和密钥，重启后沿用所选路径 |
 | [v1.1.1](https://github.com/Ricki0613/TokenMonitor/releases/tag/v1.1.1) | 2026-10-08 | 修复自选安装目录下保存 Key 的权限问题；配置改存当前用户目录，自动迁移旧配置；新增安装助手、准确错误提示与安装排错说明 |
@@ -39,7 +42,7 @@ ChatGPT 浮窗新增 **重置额度**：显示官方剩余次数，确认后使�
 
 ## 下载、安装与首次使用
 
-1. **下载运行包**：[TokenMonitor-v2.0.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.0.0/TokenMonitor-v2.0.0-windows-x64.zip)，右键 → **全部解压**。
+1. **下载运行包**：[TokenMonitor-v2.1.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.1.0/TokenMonitor-v2.1.0-windows-x64.zip)，右键 → **全部解压**。
 2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或分别填写程序位置和数据目录。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
 3. **连接账户**：DeepSeek 在“设置”中填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。OpenAI 在“设置”中使用普通 API Key 登录，读取历史用量还需组织 Admin API Key 和对应的 API Key ID。只开启需要的服务即可。
 4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。
@@ -56,8 +59,17 @@ ChatGPT 浮窗新增 **重置额度**：显示官方剩余次数，确认后使�
 
 Release 中的 Windows ZIP 是可直接运行的程序；GitHub 自动生成的 `Source code` 压缩包用于开发。
 
+## 更新检测（v2.1.0 起）
+
+启动时自动检查 GitHub 最新正式 Release，成功后每 6 小时复查。新版会显示在控制面板，并通过托盘通知提醒；同一版本在本次运行中只通知一次。控制面板或托盘菜单可手动 **检查更新**，两次请求至少间隔 1 分钟。
+
+点击 **下载更新 ↗** 打开项目的对应发布页，下载 ZIP，退出旧程序后覆盖升级（保留数据目录），或运行新包的 `Install.cmd` 并选择原安装目录。程序不会自动下载或覆盖安装。断网、超时或 GitHub 限流时显示失败提示，1 小时后重试，用量监控继续运行；也可直接打开发布页。
+
+维护者发布新版本时，使用递增的 `v主版本.次版本.修订号`（如 `v2.2.0`），附上运行包并将正式 Release 标记为 **Latest**。草稿、预发布和仅推送的 Git 标签不会触发提醒。
+
 ## 数据范围与隐私
 
+- 更新检测仅访问本项目的公开 GitHub Release 接口，不发送本机配置、API Key 或账户用量；GitHub 会收到常规网络请求信息（如 IP 和应用版本）。
 - GPT 显示 **Codex / ChatGPT Work 订阅额度**，不涵盖 ChatGPT 普通聊天的所有模型消息额度。
 - DeepSeek 使用官方余额接口，**不是全账户 Token 历史统计**。点击窗口内“官方用量”可查看后台明细。
 - OpenAI 使用官方组织 `usage/completions` 接口，并按你提供的 API Key ID 过滤。普通 API Key 用 `GET /v1/models` 验证登录；受限 Key 需允许读取该接口。普通 Key 本身不能读取组织历史用量，需补充 **Admin API Key 与 API Key ID**，未配置时显示待配置状态。
@@ -78,7 +90,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-输出位于 `build\`。脚本使用 .NET Framework C# 编译器；58 项离线自测与 54 项界面检查使用模拟数据，覆盖密钥保存、旧配置迁移、数据目录切换、OpenAI 用量解析与异常状态。无需真实账户或 API Key，不发送模型推理请求，不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
+输出位于 `build\`。脚本使用 .NET Framework C# 编译器；65 项离线自测与 60 项界面检查使用模拟数据，覆盖密钥保存、旧配置迁移、数据目录切换、OpenAI 用量解析、更新检测与异常状态。无需真实账户或 API Key，不发送模型推理请求，不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
 
 发布包使用 `scripts/package.ps1` 生成；`scripts/test-package.ps1 -Archive <ZIP路径>` 执行 6 项安装检查，包括自选中文/空格路径、快捷方式、原地覆盖升级和损坏文件拦截。
 
@@ -101,7 +113,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 
 - 当前界面为中文，重置时间使用北京时间（UTC+8）。
 - 数据定时查询，可能存在服务端更新延迟；接口变化时可能需要适配。
-- 暂无开机自启设置和自动更新；发布的程序尚未代码签名。
+- 暂无开机自启设置和自动下载安装；更新检测需 v2.1.0 及以后版本；发布的程序尚未代码签名。
 
 ## 许可证
 

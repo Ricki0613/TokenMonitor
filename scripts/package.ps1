@@ -1,4 +1,4 @@
-param([string]$Version = '2.0.0', [string]$BuildPath, [string]$OutputPath)
+﻿param([string]$Version = '2.1.0', [string]$BuildPath, [string]$OutputPath)
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Version must be major.minor.patch.' }
 $repoRoot = Split-Path -Parent $PSScriptRoot
