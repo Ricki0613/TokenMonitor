@@ -65,6 +65,7 @@ namespace TokenMonitor {
             });
             OpenAiUsageTests.Run(check);
             UpdateTests.Run(check);
+            DeepSeekHarnessTests.Run(check);
             var saved=Paths.Root;var temp=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(report)),"test-data-"+Guid.NewGuid().ToString("N"));
             var savedData=Paths.TestDataDirectory;
             Directory.CreateDirectory(temp);Paths.Root=Path.Combine(temp,"program");Paths.TestDataDirectory=Path.Combine(temp,"user-data");

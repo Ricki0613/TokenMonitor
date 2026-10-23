@@ -79,6 +79,7 @@ namespace TokenMonitor {
     }
     public class DeepSnapshot {
         public bool Available;
+        public bool FromHarness;
         public List<Balance> Balances=new List<Balance>();
         public DateTimeOffset Fetched=DateTimeOffset.UtcNow;
         public static DeepSnapshot Parse(Dictionary<string,object> obj) {
@@ -102,6 +103,7 @@ namespace TokenMonitor {
     public class Preferences {
         public bool Gpt=true, Deep=true, OpenAi=false;
         public int Interval=30;
+        public string DeepSource="api";
         public string Appearance="system", PendingResetKey;
         public double GptWidth=368,GptHeight=500,DeepWidth=368,DeepHeight=445;
         public bool GptAutoHeight=true,DeepAutoHeight=true;
@@ -112,6 +114,7 @@ namespace TokenMonitor {
         public static Preferences Load() {
             try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences));
                 if(p==null)return new Preferences();
+                if(p.DeepSource!="harness")p.DeepSource="api";
                 p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;
                 if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";
                 p.GptWidth=Size(p.GptWidth,300,1600,368);p.DeepWidth=Size(p.DeepWidth,300,1600,368);

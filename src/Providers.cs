@@ -21,16 +21,18 @@ namespace TokenMonitor {
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
             http=new HttpClient(new HttpClientHandler { AllowAutoRedirect=false });
             http.Timeout=TimeSpan.FromSeconds(20);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/2.1.0");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/2.2.0");
         }
-        public async Task<DeepSnapshot> Fetch() {
-            string key=SecretStore.Read();
-            using(var request=new HttpRequestMessage(HttpMethod.Get,"https://api.deepseek.com/user/balance")) {
-                request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",key);
+        public async Task<DeepSnapshot> Fetch(string source="api") {
+            bool harness=source=="harness";
+            string key=harness?DeepSeekHarness.ReadToken():SecretStore.Read();
+            using(var request=new HttpRequestMessage(HttpMethod.Get,harness?"https://platform.deepseek.com/api/v0/users/get_user_summary":"https://api.deepseek.com/user/balance")) {
+                if(harness)request.Headers.Add("x-dsh-auth-token",key);
+                else request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",key);
                 key=null;
                 using(var response=await http.SendAsync(request).ConfigureAwait(false)) {
                     int code=(int)response.StatusCode;
-                    if(code==401||code==403) throw new ProviderException("密钥无效或无权访问，请在设置中更新",300);
+                    if(code==401||code==403) throw new ProviderException(harness?"Harness 登录已过期，请在 DeepSeek Harness 中重新登录":"密钥无效或无权访问，请在设置中更新",300);
                     if(code==429) {
                         int cooldown=60;
                         if(response.Headers.RetryAfter!=null) {
@@ -40,7 +42,8 @@ namespace TokenMonitor {
                         throw new ProviderException("查询频率受限，稍后自动重试",cooldown);
                     }
                     if(!response.IsSuccessStatusCode) throw new ProviderException("官方服务暂不可用（HTTP "+code+"）",60);
-                    return DeepSnapshot.Parse(Json.Read(await response.Content.ReadAsStringAsync().ConfigureAwait(false)));
+                    var body=Json.Read(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
+                    return harness?DeepSeekHarness.ParseBalance(body):DeepSnapshot.Parse(body);
                 }
             }
         }
@@ -81,7 +84,7 @@ namespace TokenMonitor {
                 if(!p.Start()) throw new ProviderException("无法启动 Codex 用量连接");
                 process=p;p.BeginErrorReadLine();
                 Task.Run(()=>ReadLoop(p));
-                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="2.1.0" } }).ConfigureAwait(false);
+                await Request("initialize",new { clientInfo=new { name="token_monitor",title="Token Monitor",version="2.2.0" } }).ConfigureAwait(false);
                 Send(new { method="initialized",@params=new {} });
             } catch { StopProcess();throw; } finally { startup.Release(); }
         }

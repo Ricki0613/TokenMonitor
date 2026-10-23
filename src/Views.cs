@@ -154,7 +154,7 @@ namespace TokenMonitor {
         public readonly Button Refresh;
         public readonly Button CheckUpdate,DownloadUpdate;
         public readonly TextBlock UpdateStatus;
-        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v2.1.0",UI.Green,410,490,false) {
+        public MainView(MonitorApp app):base("Token Monitor","用量，随时可见  ·  v2.2.0",UI.Green,410,490,false) {
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
             OpenAiInfo=UI.Text("在设置中连接 API Key",11.5,UI.Muted);
@@ -271,7 +271,7 @@ namespace TokenMonitor {
                 var gift=UI.Row(UI.Text("赠送余额",12,UI.Muted),UI.Text(b.Format(b.Granted),13,UI.Ink,true));gift.Margin=new Thickness(0,9,0,0);box.Children.Add(gift);var card=UI.Card(box,12);card.Margin=new Thickness(0);cards.Children.Add(card);
             }
             details.Children.Add(cards);
-            var available=UI.Text(snapshot.Available?"●  余额充足，可调用 API":"●  余额不足，暂不可调用 API",11,snapshot.Available?UI.Blue:"#CA6547");available.Margin=new Thickness(2,1,0,9);details.Children.Add(available);
+            var available=UI.Text(snapshot.FromHarness?"来源：DeepSeek Harness · 充值 + 赠送钱包":snapshot.Available?"●  余额充足，可调用 API":"●  余额不足，暂不可调用 API",11,(snapshot.FromHarness||snapshot.Available)?UI.Blue:"#CA6547");available.Margin=new Thickness(2,1,0,9);details.Children.Add(available);
             var note=UI.Text("Token 用量与消费明细见官方用量页",10.5,UI.Muted);note.Margin=new Thickness(2,0,0,14);details.Children.Add(note);
         }
         public void UpdateStatus(object data,string error,bool loading) {
@@ -302,10 +302,16 @@ namespace TokenMonitor {
             var appearance=new ComboBox {Height=32,FontSize=12,ItemsSource=new[]{"随系统","浅色","深色"},SelectedIndex=Array.IndexOf(new[]{"system","light","dark"},app.Prefs.Appearance)};
             AutomationProperties.SetName(appearance,"外观主题");
             var appearanceRow=UI.Row(UI.Text("外观",13,UI.Ink,true),appearance);appearance.Width=140;appearanceRow.Margin=new Thickness(2,0,2,16);Body.Children.Add(appearanceRow);
+            var source=new ComboBox {Height=32,FontSize=12,ItemsSource=new[]{"手动 API Key","DeepSeek Harness 登录账户"},SelectedIndex=app.Prefs.DeepSource=="harness"?1:0};
+            AutomationProperties.SetName(source,"DeepSeek 余额来源");
+            Body.Children.Add(UI.Text("DeepSeek 余额来源",13,UI.Ink,true));Body.Children.Add(source);
+            var harnessHint=UI.Text("Harness 模式读取本机登录状态，无需填写 API Key。请先在 Harness 登录；凭据不会复制保存。",11,UI.Muted);harnessHint.Margin=new Thickness(2,9,0,12);Body.Children.Add(harnessHint);
             var label=UI.Text("DeepSeek API Key",13,UI.Ink,true);label.Margin=new Thickness(2,3,0,10);Body.Children.Add(label);
             var input=PasswordInput("新的 DeepSeek API Key");Body.Children.Add(input);
             var hint=UI.Text(File.Exists(Paths.Key)?"已保存密钥。留空可保留原密钥。":"尚未设置密钥。",11,UI.Muted);hint.Margin=new Thickness(2,9,0,15);Body.Children.Add(hint);
 
+            Action sourceChanged=()=>{input.IsEnabled=source.SelectedIndex==0;label.Visibility=hint.Visibility=input.Visibility=source.SelectedIndex==0?Visibility.Visible:Visibility.Collapsed;};
+            source.SelectionChanged+=(s,e)=>sourceChanged();sourceChanged();
             OpenAiConnection existing=null;string readError=null;
             try {if(File.Exists(Paths.OpenAiKey))existing=OpenAiSecretStore.Read();}
             catch(Exception e) {readError=LocalStorage.Explain(e,"读取 OpenAI 密钥")+" 请重新填写 OpenAI API Key。";}
@@ -344,7 +350,7 @@ namespace TokenMonitor {
                 showMessage(string.IsNullOrEmpty(existing.AdminKey)||string.IsNullOrEmpty(existing.ApiKeyId)?"OpenAI API Key 登录成功。补充管理密钥和对应 ID 后可查看 token 用量。":"OpenAI 已连接，用量按此 API Key ID 筛选。请确认 ID 对应上方普通密钥。");
             };
             Button save=null,choose=null,connect=null,cancel=null;
-            Action<bool> setBusy=value=>{busy=value;api.IsEnabled=!value;admin.IsEnabled=!value;idInput.IsEnabled=!value;input.IsEnabled=!value;appearance.IsEnabled=!value;if(save!=null)save.IsEnabled=!value;if(choose!=null)choose.IsEnabled=!value;if(connect!=null)connect.IsEnabled=!value;if(cancel!=null)cancel.IsEnabled=!value;};
+            Action<bool> setBusy=value=>{busy=value;api.IsEnabled=!value;admin.IsEnabled=!value;idInput.IsEnabled=!value;source.IsEnabled=!value;input.IsEnabled=!value&&source.SelectedIndex==0;appearance.IsEnabled=!value;if(save!=null)save.IsEnabled=!value;if(choose!=null)choose.IsEnabled=!value;if(connect!=null)connect.IsEnabled=!value;if(cancel!=null)cancel.IsEnabled=!value;};
             connect=UI.Button("连接 OpenAI",async()=>{
                 setBusy(true);showMessage("正在验证 OpenAI API Key…");
                 try {await connectCurrent();}
@@ -370,17 +376,19 @@ namespace TokenMonitor {
             var locationActions=new WrapPanel();Body.Children.Remove(folder);folder.Margin=new Thickness(0,0,8,14);locationActions.Children.Add(folder);locationActions.Children.Add(choose);Body.Children.Add(locationActions);
             var locationHint=UI.Text("选择空文件夹，自动迁移当前配置和密钥。",10.5,UI.Muted);locationHint.Margin=new Thickness(2,0,0,14);Body.Children.Add(locationHint);
             save=UI.Button("保存",async()=>{
-                string operation="保存密钥",previous=app.Prefs.Appearance;
+                string operation="保存密钥",previous=app.Prefs.Appearance,previousSource=app.Prefs.DeepSource;
                 setBusy(true);
                 try {
                     if(changed()) {operation="连接 OpenAI";showMessage("正在验证 OpenAI API Key…");await connectCurrent();}
                     operation="保存密钥";
-                    if(input.Password.Length>0)SecretStore.Save(input.Password);
+                    if(source.SelectedIndex==0&&input.Password.Length>0)SecretStore.Save(input.Password);
+                    app.Prefs.DeepSource=source.SelectedIndex==1?"harness":"api";
                     operation="保存设置";app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.Save();
                 } catch(Exception e) {
-                    app.Prefs.Appearance=previous;showMessage(operation=="连接 OpenAI"?ConnectionError(e):e is ArgumentException?e.Message:LocalStorage.Explain(e,operation));return;
+                    app.Prefs.DeepSource=previousSource;app.Prefs.Appearance=previous;showMessage(operation=="连接 OpenAI"?ConnectionError(e):e is ArgumentException?e.Message:LocalStorage.Explain(e,operation));return;
                 }
                 finally {setBusy(false);}
+                if(previousSource!=app.Prefs.DeepSource){app.DeepData=null;app.DeepError=null;app.Deep.Render(null,null,false);}
                 input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();app.ResetOpenAiCooldown();Exiting=true;Close();await app.RefreshAll(true);
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
             cancel=UI.Button("取消",()=>{Exiting=true;Close();});Body.Children.Add(UI.Row(save,cancel));

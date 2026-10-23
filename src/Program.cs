@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("2.1.0.0")]
-[assembly: AssemblyFileVersion("2.1.0.0")]
-[assembly: AssemblyInformationalVersion("2.1.0")]
+[assembly: AssemblyVersion("2.2.0.0")]
+[assembly: AssemblyFileVersion("2.2.0.0")]
+[assembly: AssemblyInformationalVersion("2.2.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -191,10 +191,11 @@ namespace TokenMonitor {
         public async Task RefreshDeep(bool force) {
             var now=DateTimeOffset.UtcNow;
             if(quitting||changingStorage||deepBusy||!Prefs.Deep||now<deepCooldown||(!force&&now<nextDeep))return;
+            string requestedSource=Prefs.DeepSource;
             deepBusy=true;Deep.UpdateStatus(DeepData,DeepError,true);
-            try {DeepData=offline?SampleDeep():await deep.Fetch();DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {DeepData=offline?SampleDeep():await deep.Fetch(Prefs.DeepSource);DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {DeepError=ErrorMessage(e,false);deepFailures++;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,deepFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)deepCooldown=nextDeep;}
-            finally {deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
+            finally {if(requestedSource!=Prefs.DeepSource){DeepData=null;DeepError=null;ResetDeepCooldown();}deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
         }
         public void UpdateLabels() {
             if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
@@ -232,7 +233,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v2.1.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v2.2.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -279,7 +280,7 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v2.1.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v2.2.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
                 var demo=UpdateClient.Parse(UpdateTests.Release("v2.2.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
@@ -386,7 +387,7 @@ namespace TokenMonitor {
             result["data_directory"]=Paths.Data;
             using(var gpt=new CodexProvider())using(var deep=new DeepProvider())using(var openAi=new OpenAiProvider()) {
                 try {var s=await gpt.Fetch();result["gpt"]=new {ok=true,groups=s.Groups.Count,windows=s.Groups.Sum(x=>x.Windows.Count)};}catch(Exception e){result["gpt"]=new {ok=false,error=e.GetType().Name};}
-                try {var s=await deep.Fetch();result["deepseek"]=new {ok=true,currencies=s.Balances.Select(x=>x.Currency).ToArray()};}catch(Exception e){result["deepseek"]=new {ok=false,error=e.GetType().Name};}
+                try {var s=await deep.Fetch(Preferences.Load().DeepSource);result["deepseek"]=new {ok=true,currencies=s.Balances.Select(x=>x.Currency).ToArray()};}catch(Exception e){result["deepseek"]=new {ok=false,error=e.GetType().Name};}
                 if(File.Exists(Paths.OpenAiKey)) {
                     try {var s=await openAi.Fetch(OpenAiSecretStore.Read());result["openai"]=new {ok=true,today_tokens=s.Today.TotalTokens,month_tokens=s.Month.TotalTokens};}catch(Exception e){result["openai"]=new {ok=false,error=e.GetType().Name};}
                 } else result["openai"]=new {configured=false};

@@ -10,6 +10,16 @@ namespace TokenMonitor {
     public static class OpenAiUiTests {
         public static void Run(SettingsView view,IDictionary<string,object> checks) {
             var nodes=Walk(view).ToList();
+            var deepSource=nodes.OfType<ComboBox>().FirstOrDefault(x=>AutomationProperties.GetName(x)=="DeepSeek 余额来源");
+            var deepKey=nodes.OfType<PasswordBox>().FirstOrDefault(x=>AutomationProperties.GetName(x)=="新的 DeepSeek API Key");
+            checks["harness_source_selector_available"]=deepSource!=null&&deepKey!=null;
+            if(deepSource!=null&&deepKey!=null) {
+                checks["harness_old_settings_keep_api"]=deepSource.SelectedIndex==0;
+                deepSource.SelectedIndex=1;
+                checks["harness_mode_hides_manual_key"]=deepKey.Visibility==Visibility.Collapsed&&!deepKey.IsEnabled;
+                deepSource.SelectedIndex=0;
+                checks["harness_switch_back_restores_manual_key"]=deepKey.Visibility==Visibility.Visible&&deepKey.IsEnabled;
+            }
             var api=nodes.OfType<PasswordBox>().FirstOrDefault(x=>AutomationProperties.GetName(x)=="新的 OpenAI API Key");
             var admin=nodes.OfType<PasswordBox>().FirstOrDefault(x=>AutomationProperties.GetName(x)=="新的 OpenAI Admin API Key");
             var id=nodes.OfType<TextBox>().FirstOrDefault(x=>AutomationProperties.GetName(x)=="OpenAI API Key ID，key_ 开头");

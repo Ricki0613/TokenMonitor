@@ -146,7 +146,7 @@ namespace TokenMonitor {
             this.clock=clock;
             http=new HttpClient(handler);
             http.Timeout=TimeSpan.FromSeconds(20);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/2.1.0");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("TokenMonitor/2.2.0");
             http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             http.MaxResponseContentBufferSize=2097152;
         }

@@ -30,7 +30,7 @@ namespace TokenMonitor {
             check("Update request uses public endpoint without account authorization",()=>{
                 var handler=new Stub((request)=>{
                     Assert(request.Method==HttpMethod.Get&&request.RequestUri.AbsoluteUri==UpdateClient.Endpoint);
-                    Assert(request.Headers.Authorization==null&&request.Headers.UserAgent.ToString().Contains("TokenMonitor/2.1.0"));
+                    Assert(request.Headers.Authorization==null&&request.Headers.UserAgent.ToString().Contains("TokenMonitor/"+UpdateClient.Current.ToString(3)));
                     return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(Release("v2.2.0"))};
                 });
                 using(var client=new UpdateClient(handler))Assert(client.Fetch().GetAwaiter().GetResult().Tag=="v2.2.0");
