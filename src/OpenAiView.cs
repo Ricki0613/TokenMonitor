@@ -40,7 +40,7 @@ namespace TokenMonitor {
             UpdateStatus(snapshot,error,loading);
         }
         static Border UsageCard(string title,string date,OpenAiTokenTotals totals) {
-            var box=new StackPanel();box.Children.Add(UI.Row(UI.Text(title,13,UI.Ink,true),UI.Text(date,10.5,UI.Muted)));
+            var box=new StackPanel {VerticalAlignment=VerticalAlignment.Center};box.Children.Add(UI.Row(UI.Text(title,13,UI.Ink,true),UI.Text(date,10.5,UI.Muted)));
             var total=UI.Text(totals.TotalTokens.ToString("N0",CultureInfo.InvariantCulture),32,UI.Ink,true);total.Margin=new Thickness(0,10,0,2);box.Children.Add(total);
             var label=UI.Text("总 token",10.5,UI.Muted);label.Margin=new Thickness(0,0,0,12);box.Children.Add(label);
             var divider=new Border {Height=1,Margin=new Thickness(0,0,0,12)};Appearance.Paint(divider,Border.BackgroundProperty,"#EEF0F3");box.Children.Add(divider);

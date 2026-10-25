@@ -102,6 +102,7 @@ namespace TokenMonitor {
     }
     public class Preferences {
         public bool Gpt=true, Deep=true, OpenAi=false;
+        public bool? MonitorGpt,MonitorDeep,MonitorOpenAi;
         public int Interval=30;
         public bool OrbMode=false;
         public int OrbScale=100;

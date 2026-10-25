@@ -12,13 +12,17 @@ Manage your accounts in the control center, then keep usage nearby with a compac
 
 The upper arc shows 5-hour remaining quota; the lower arc shows weekly remaining quota. Double-click to expand. Screenshots use simulated data.
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.1/TokenMonitor-v3.0.1-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
 
 ## Update checks
 
 Checks the latest stable GitHub Release at startup and every 6 hours after success. A new version appears in Settings → About with one tray notification per version per run. Check manually from Settings → About or the tray (requests are at least one minute apart). Failures retry after one hour and do not interrupt usage monitoring. The download button opens the project release page; exit the app and install the ZIP manually, preserving your data directory.
 
 Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the Windows ZIP and mark it **Latest**. Drafts, prereleases and Git tags without a release do not notify users. Checks send no credentials, settings or account usage to GitHub; GitHub receives ordinary request information such as IP address and app version.
+
+## New in v3.1.0
+
+A data-first dashboard with two ChatGPT quota bars, prominent DeepSeek balances, and OpenAI daily/monthly totals. Each card has connection settings and a labeled float switch. First launch starts with no floats. API key verification and historical usage connection are separate steps with actionable status messages. Hidden floats keep monitoring; floating window height is bounded by content to avoid empty space.
 
 ## Features
 
@@ -37,10 +41,10 @@ Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the W
 
 ## Quick start
 
-1. Download [TokenMonitor-v3.0.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.1/TokenMonitor-v3.0.1-windows-x64.zip) and extract the entire archive.
+1. Download [TokenMonitor-v3.1.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip) and extract the entire archive.
 2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
-4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and is enabled after successful sign-in.
+4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and can be shown explicitly after connecting.
 
 Requires Windows 10 / 11 x64 and .NET Framework 4.8. The application UI is currently Chinese; reset times use Beijing time (UTC+8). Python, Node and the .NET SDK are not required to run the app.
 

@@ -18,8 +18,12 @@ namespace TokenMonitor {
         }
         protected override Size ArrangeOverride(Size final) {
             int cols=Columns(final.Width);double width=Math.Max(0,(final.Width-Gap*(cols-1))/cols),y=0;
+            double natural=0;int rows=(InternalChildren.Count+cols-1)/cols;
+            for(int start=0;start<InternalChildren.Count;start+=cols){double h=0;for(int i=start;i<Math.Min(start+cols,InternalChildren.Count);i++)h=Math.Max(h,InternalChildren[i].DesiredSize.Height);natural+=h;}
+            double extra=rows==0?0:Math.Max(0,(final.Height-natural-Gap*(rows-1))/rows);
             for(int start=0;start<InternalChildren.Count;start+=cols) {
                 double height=0;for(int i=start;i<Math.Min(start+cols,InternalChildren.Count);i++)height=Math.Max(height,InternalChildren[i].DesiredSize.Height);
+                height+=extra;
                 for(int i=start;i<Math.Min(start+cols,InternalChildren.Count);i++)InternalChildren[i].Arrange(new Rect((i-start)*(width+Gap),y,width,height));
                 y+=height+Gap;
             }

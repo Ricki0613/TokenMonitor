@@ -15,13 +15,17 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.0.1.0")]
-[assembly: AssemblyFileVersion("3.0.1.0")]
-[assembly: AssemblyInformationalVersion("3.0.1")]
+[assembly: AssemblyVersion("3.1.0.0")]
+[assembly: AssemblyFileVersion("3.1.0.0")]
+[assembly: AssemblyInformationalVersion("3.1.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
         public Preferences Prefs;
+        public bool FirstRun;
+        public bool MonitoringGpt {get{return Prefs.MonitorGpt??Prefs.Gpt;}}
+        public bool MonitoringDeep {get{return Prefs.MonitorDeep??Prefs.Deep;}}
+        public bool MonitoringOpenAi {get{return Prefs.MonitorOpenAi??Prefs.OpenAi;}}
         public MainView Main;
         public UsageView Gpt,Deep;
         public OpenAiView OpenAi;
@@ -34,6 +38,7 @@ namespace TokenMonitor {
         public OpenAiSnapshot OpenAiData;
         public string OpenAiError;
         bool openAiBusy;
+        public bool OpenAiKeyValidated;
         int openAiFailures;
         DateTimeOffset nextOpenAi=DateTimeOffset.MinValue,openAiCooldown=DateTimeOffset.MinValue;
         public string GptError,DeepError;
@@ -53,7 +58,10 @@ namespace TokenMonitor {
             using(var stream=typeof(MonitorApp).Assembly.GetManifestResourceStream("TokenMonitor.Theme.xaml")) Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Load(stream));
             if(!smoke)LocalStorage.Initialize();
             Prefs=smoke?new Preferences():Preferences.Load();
-            if(offline)Prefs.OpenAi=true;
+            FirstRun=!smoke&&!File.Exists(Paths.Preferences);
+            if(FirstRun){Prefs.Gpt=false;Prefs.Deep=false;Prefs.OpenAi=false;}
+            Prefs.MonitorGpt=MonitoringGpt;Prefs.MonitorDeep=MonitoringDeep;Prefs.MonitorOpenAi=MonitoringOpenAi;
+            if(offline){Prefs.OpenAi=true;Prefs.MonitorOpenAi=true;}
             Appearance.Apply(Prefs.Appearance);
             if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
@@ -81,9 +89,9 @@ namespace TokenMonitor {
             timer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(1)};
             timer.Tick+=async(s,a)=>{
                 UpdateLabels();var now=DateTimeOffset.UtcNow;
-                if(Prefs.Gpt&&!gptBusy&&now>=nextGpt)await RefreshGpt(false);
-                if(Prefs.Deep&&!deepBusy&&now>=nextDeep)await RefreshDeep(false);
-                if(Prefs.OpenAi&&!openAiBusy&&now>=nextOpenAi)await RefreshOpenAi(false);
+                if(MonitoringGpt&&!gptBusy&&now>=nextGpt)await RefreshGpt(false);
+                if(MonitoringDeep&&!deepBusy&&now>=nextDeep)await RefreshDeep(false);
+                if(MonitoringOpenAi&&!openAiBusy&&now>=nextOpenAi)await RefreshOpenAi(false);
             };
             if(!smoke)timer.Start();
             Dispatcher.BeginInvoke(new Action(async()=>{
@@ -109,18 +117,34 @@ namespace TokenMonitor {
             tray.DoubleClick+=(s,e)=>Dispatcher.Invoke(new Action(ShowControl));
         }
         public void ShowControl() {Main.Show();Main.WindowState=WindowState.Normal;Main.Activate();}
-        public void SetGpt(bool show) {Prefs.Gpt=show;if(show){if(Prefs.OrbMode)Orb.Show();else Gpt.Show();RefreshGpt(true);}else {Gpt.Hide();Orb.Hide();}Save();UpdateLabels();}
+        public void SetGpt(bool show) {Prefs.Gpt=show;if(show){Prefs.MonitorGpt=true;if(Prefs.OrbMode)Orb.Show();else Gpt.Show();RefreshGpt(true);}else {Gpt.Hide();Orb.Hide();}Save();UpdateLabels();}
         public void SetOrbMode(bool compact) {
             Prefs.OrbMode=compact;
             Gpt.Hide();Orb.Hide();
             if(Prefs.Gpt){if(compact){Orb.ApplyScale();Orb.Show();}else {Gpt.Show();Gpt.Activate();}}
             Save();UpdateLabels();
         }
-        public void SetDeep(bool show) {Prefs.Deep=show;if(show){Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
+        public void SetDeep(bool show) {Prefs.Deep=show;if(show){Prefs.MonitorDeep=true;Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
         public void ResetDeepCooldown() {deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.MinValue;deepFailures=0;}
-        public void SetOpenAi(bool show) {Prefs.OpenAi=show;if(show){OpenAi.Show();RefreshOpenAi(true);}else OpenAi.Hide();Save();UpdateLabels();}
+        public void SetOpenAi(bool show) {Prefs.OpenAi=show;if(show){Prefs.MonitorOpenAi=true;OpenAi.Show();RefreshOpenAi(true);}else OpenAi.Hide();Save();UpdateLabels();}
         public void ResetOpenAiCooldown() {openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.MinValue;openAiFailures=0;}
+        public async Task VerifyOpenAiKey(string key) {
+            if(quitting||changingStorage||openAiBusy)throw new ProviderException("正在连接，请稍后重试。");
+            openAiBusy=true;
+            try {
+                await openAi.ValidateApiKey(key);
+                OpenAiConnection previous=null;
+                try {if(File.Exists(Paths.OpenAiKey))previous=OpenAiSecretStore.Read();}catch { }
+                bool same=previous!=null&&previous.ApiKey==key;
+                var connection=same?previous:new OpenAiConnection {ApiKey=key};
+                OpenAiSecretStore.Save(connection);
+                if(!same)OpenAiData=null;
+                OpenAiError=OpenAiData==null?OpenAiConnectionHelp.Next(connection):null;
+                Prefs.MonitorOpenAi=true;Save();ResetOpenAiCooldown();
+            } finally {openAiBusy=false;UpdateLabels();}
+        }
         public async Task ConnectOpenAi(OpenAiConnection connection) {
+            OpenAiKeyValidated=false;
             if(quitting||changingStorage)throw new ProviderException("请等待数据目录切换完成后再登录。");
             OpenAiSecretStore.Validate(connection);
             // Keep the old connection and snapshot until validation and persistence succeed.
@@ -129,15 +153,15 @@ namespace TokenMonitor {
             openAiBusy=true;
             OpenAiSnapshot snapshot=null;
             try {
-                await openAi.ValidateApiKey(connection.ApiKey);
+                await openAi.ValidateApiKey(connection.ApiKey);OpenAiKeyValidated=true;
                 if(!string.IsNullOrEmpty(connection.AdminKey)&&!string.IsNullOrEmpty(connection.ApiKeyId))snapshot=await openAi.Fetch(connection);
                 OpenAiSecretStore.Save(connection);
                 OpenAiData=snapshot;
-                OpenAiError=snapshot==null?"API Key 已登录；请在设置中补充 Admin API Key 和 API Key ID 以读取历史用量。":null;
+                OpenAiError=snapshot==null?OpenAiConnectionHelp.Next(connection):null;
                 ResetOpenAiCooldown();
                 nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(snapshot==null?300:Prefs.Interval);
                 if(snapshot==null)openAiCooldown=nextOpenAi;
-                Main.OpenAiSwitch.IsChecked=true;
+                Prefs.MonitorOpenAi=true;Save();
             } finally {
                 openAiBusy=false;
                 if(!quitting){OpenAi.Render(OpenAiData,OpenAiError,false);UpdateLabels();}
@@ -146,7 +170,7 @@ namespace TokenMonitor {
         public async Task RefreshAll(bool force) {
             if(quitting)return;
             Main.Refresh.IsEnabled=false;
-            try {await Task.WhenAll(Prefs.Gpt?RefreshGpt(force):Task.FromResult(0),Prefs.Deep?RefreshDeep(force):Task.FromResult(0),Prefs.OpenAi?RefreshOpenAi(force):Task.FromResult(0));}
+            try {await Task.WhenAll(MonitoringGpt?RefreshGpt(force):Task.FromResult(0),MonitoringDeep?RefreshDeep(force):Task.FromResult(0),MonitoringOpenAi?RefreshOpenAi(force):Task.FromResult(0));}
             finally {if(!quitting)Main.Refresh.IsEnabled=true;}
         }
         static string ErrorMessage(Exception e,bool gpt) {
@@ -164,7 +188,7 @@ namespace TokenMonitor {
         }
         public async Task RefreshGpt(bool force) {
             var now=DateTimeOffset.UtcNow;
-            if(quitting||changingStorage||gptBusy||!Prefs.Gpt||now<gptCooldown||(!force&&now<nextGpt))return;
+            if(quitting||changingStorage||gptBusy||!MonitoringGpt||now<gptCooldown||(!force&&now<nextGpt))return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
             try {GptData=offline?SampleGpt():await codex.Fetch();GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {GptError=ErrorMessage(e,true);gptFailures++;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,gptFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)gptCooldown=nextGpt;}
@@ -198,7 +222,7 @@ namespace TokenMonitor {
         }
         public async Task RefreshDeep(bool force) {
             var now=DateTimeOffset.UtcNow;
-            if(quitting||changingStorage||deepBusy||!Prefs.Deep||now<deepCooldown||(!force&&now<nextDeep))return;
+            if(quitting||changingStorage||deepBusy||!MonitoringDeep||now<deepCooldown||(!force&&now<nextDeep))return;
             string requestedSource=Prefs.DeepSource;
             deepBusy=true;Deep.UpdateStatus(DeepData,DeepError,true);
             try {DeepData=offline?SampleDeep():await deep.Fetch(Prefs.DeepSource);DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
@@ -208,20 +232,16 @@ namespace TokenMonitor {
         public void UpdateLabels() {
             if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
             Orb.Render(GptData,GptError,gptBusy);
-            string summary="等待同步";
-            if(GptData!=null) {
-                var group=GptData.Groups.FirstOrDefault(x=>x.Id=="codex")??GptData.Groups[0];
-                summary=string.Join(" · ",group.Windows.Take(2).Select(x=>x.Label.Replace("额度","")+" "+(x.Remaining.HasValue?x.Remaining.Value.ToString("0.#")+"%":"—")))+" 剩余";
-            }
-            Main.GptInfo.Text=!Prefs.Gpt?"已隐藏 · 暂停刷新":GptError!=null?"连接异常 · 打开悬浮窗查看":summary;
-            Main.DeepInfo.Text=!Prefs.Deep?"已隐藏 · 暂停刷新":DeepError!=null?"连接异常 · 打开悬浮窗查看":DeepData!=null?"可用余额 "+string.Join(" / ",DeepData.Balances.Select(x=>x.Format(x.Total))):"等待同步";
+            Main.GptInfo.Text=GptError!=null?(GptData!=null?"旧数据 · ":"")+GptError:GptData!=null?"已同步 "+UI.Clock(GptData.Fetched)+" · 剩余额度":"选择连接设置，连接本机账号";
+            Main.DeepInfo.Text=DeepError!=null?(DeepData!=null?"旧数据 · ":"")+DeepError:DeepData!=null?"已同步 "+UI.Clock(DeepData.Fetched)+(DeepData.FromHarness?" · Harness":" · API"):"选择连接设置，添加余额来源";
+            Main.OpenAiInfo.Text=OpenAiError!=null?(OpenAiData!=null?"旧数据 · ":"")+OpenAiError:OpenAiData!=null?"历史用量已连接 · "+UI.Clock(OpenAiData.Fetched):"选择连接设置，接入历史用量";
+            Main.RenderMetrics();
             Gpt.UpdateStatus(GptData,GptError,gptBusy);Deep.UpdateStatus(DeepData,DeepError,deepBusy);
-            Main.OpenAiInfo.Text=!Prefs.OpenAi?"已隐藏 · 暂停刷新":OpenAiError!=null?"需要处理 · 打开悬浮窗查看":OpenAiData!=null?"本月 "+OpenAiData.Month.TotalTokens.ToString("N0")+" tokens":"等待同步";
             OpenAi.UpdateStatus(OpenAiData,OpenAiError,openAiBusy);
         }
         public async Task RefreshOpenAi(bool force) {
             var now=DateTimeOffset.UtcNow;
-            if(quitting||changingStorage||openAiBusy||!Prefs.OpenAi||now<openAiCooldown||(!force&&now<nextOpenAi))return;
+            if(quitting||changingStorage||openAiBusy||!MonitoringOpenAi||now<openAiCooldown||(!force&&now<nextOpenAi))return;
             openAiBusy=true;OpenAi.UpdateStatus(OpenAiData,OpenAiError,true);
             try {OpenAiData=offline?SampleOpenAi():await openAi.Fetch(OpenAiSecretStore.Read());OpenAiError=null;openAiFailures=0;openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {OpenAiError=e is InvalidOperationException?"OpenAI 配置不可用，请在设置中重新登录。":ErrorMessage(e,false);openAiFailures++;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,openAiFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)openAiCooldown=nextOpenAi;}
@@ -243,7 +263,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.0.1";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.1.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -290,15 +310,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.0.1");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.1.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.0.1"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.1.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.0.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.0.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -374,6 +394,7 @@ namespace TokenMonitor {
                 Prefs.PendingResetKey=null;Gpt.Render(null,"模拟首次连接失败",false);Gpt.FitToContent();await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-empty.png"));
                 checks["no_live_queries_or_reset"]=true;
             }
+            if(offline)await DashboardUiTests.Run(this,checks,smokeFolder);
             File.WriteAllText(Path.Combine(smokeFolder,"smoke.json"),Json.Write(checks));Quit();
         }
         static GptSnapshot SampleGpt() {
