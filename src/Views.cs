@@ -52,6 +52,7 @@ namespace TokenMonitor {
         public readonly TextBlock Subtitle;
         public readonly Border Surface;
         public readonly ScrollViewer Scroll;
+        protected readonly DockPanel ContentPanel;
         public Action CloseAction;
         public bool Exiting;
         public bool AutoHeight=true;
@@ -61,7 +62,7 @@ namespace TokenMonitor {
         readonly bool formal;
         public Shell(string title,string sub,string accent,double width,double height,bool floating,bool formal=false) {
             this.formal=formal;
-            Title=title+" · Token Monitor";Width=width;Height=height;Topmost=floating;ShowInTaskbar=!floating;
+            Title=title=="Token Monitor"?title:title+" · Token Monitor";Width=width;Height=height;Topmost=floating;ShowInTaskbar=!floating;
             WindowStyle=formal?WindowStyle.SingleBorderWindow:WindowStyle.None;ResizeMode=formal||floating?ResizeMode.CanResize:ResizeMode.NoResize;AllowsTransparency=!formal;Background=Brushes.Transparent;
             MinWidth=floating?300:width;MinHeight=floating?210:100;
             FontFamily=new FontFamily("Segoe UI, Microsoft YaHei UI");
@@ -73,7 +74,8 @@ namespace TokenMonitor {
             Appearance.Paint(Surface,Border.BackgroundProperty,"#F5F7F8");Appearance.Paint(Surface,Border.BorderBrushProperty,"#E2E6E8");
             if(formal) {Surface.Margin=new Thickness(0);Surface.CornerRadius=new CornerRadius(0);Surface.Effect=null;MinWidth=760;MinHeight=560;AutoHeight=false;}
             var root=new Grid();root.Children.Add(Surface);Content=root;
-            var layout=new DockPanel { LastChildFill=true };Surface.Child=layout;
+            var layout=new DockPanel { LastChildFill=true };ContentPanel=layout;Surface.Child=layout;
+            SourceInitialized+=(s,e)=>Appearance.ApplyTitleBar(this);
             titleArea=new Border { Padding=new Thickness(19,17,14,14),Background=Brushes.Transparent,Cursor=Cursors.SizeAll };
             titleArea.MouseLeftButtonDown+=(s,e)=> { if(e.ChangedButton==MouseButton.Left && !e.Handled) { try {DragMove();} catch {} } };
             var mark=new Border { Background=UI.Brush(accent),Width=7,Height=7,CornerRadius=new CornerRadius(4),Margin=new Thickness(0,0,8,0),VerticalAlignment=VerticalAlignment.Center };
@@ -158,7 +160,10 @@ namespace TokenMonitor {
         public readonly Button Refresh;
         public readonly Button CheckUpdate,DownloadUpdate;
         public readonly TextBlock UpdateStatus;
-        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.0.0",UI.Green,920,680,false,true) {
+        readonly MonitorApp app;
+        public SettingsView SettingsPage {get;private set;}
+        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.0.1",UI.Green,920,680,false,true) {
+            this.app=app;
             GptInfo=UI.Text("正在连接当前账号…",11.5,UI.Muted);
             DeepInfo=UI.Text("正在查询 API 余额…",11.5,UI.Muted);
             OpenAiInfo=UI.Text("在设置中连接 API Key",11.5,UI.Muted);
@@ -181,7 +186,7 @@ namespace TokenMonitor {
             for(int i=0;i<3;i++){Grid.SetColumn(cards[i],i);cards[i].Margin=new Thickness(i==0?0:6,0,i==2?0:6,0);services.Children.Add(cards[i]);}
             Body.Children.Add(services);
             var presentation=new WrapPanel {Margin=new Thickness(0,0,0,20)};
-            presentation.Children.Add(UI.Button("Codex · 悬浮球",()=>{app.Main.GptSwitch.IsChecked=true;app.SetOrbMode(true);}));
+            presentation.Children.Add(UI.Button("ChatGPT · 悬浮球",()=>{app.Main.GptSwitch.IsChecked=true;app.SetOrbMode(true);}));
             var detail=UI.Button("展开额度详情",()=>{app.Main.GptSwitch.IsChecked=true;app.SetOrbMode(false);});detail.Margin=new Thickness(8,0,0,0);presentation.Children.Add(detail);
             Body.Children.Add(presentation);
             GptSwitch.Checked+=(s,e)=>app.SetGpt(true);GptSwitch.Unchecked+=(s,e)=>app.SetGpt(false);
@@ -194,7 +199,7 @@ namespace TokenMonitor {
             var auto=UI.Row(UI.Text("自动刷新",12,UI.Muted),Interval);auto.Margin=new Thickness(2,3,2,16);Body.Children.Add(auto);
             Refresh=UI.Button("立即刷新",async()=>await app.RefreshAll(true));Refresh.SetResourceReference(Button.BackgroundProperty,"ActionBrush");Refresh.SetResourceReference(Button.ForegroundProperty,"ActionInkBrush");
             var actions=new StackPanel { Orientation=Orientation.Horizontal };
-            actions.Children.Add(Refresh);var settings=UI.Button("设置",()=>new SettingsView(app){Owner=this}.ShowDialog());settings.Margin=new Thickness(8,0,0,0);actions.Children.Add(settings);
+            actions.Children.Add(Refresh);var settings=UI.Button("设置",()=>OpenSettings("外观设置"));settings.Margin=new Thickness(8,0,0,0);actions.Children.Add(settings);
             var exit=UI.Button("退出",()=>app.Quit());Body.Children.Add(UI.Row(actions,exit));
             var note=UI.Text("悬浮球可拖动 · 双击展开详情 · 右键打开菜单 · 关闭主界面后继续在托盘运行",10.5,UI.Muted);note.Margin=new Thickness(1,13,0,0);Body.Children.Add(note);
             var updatePanel=new StackPanel {Margin=new Thickness(0,14,0,0)};
@@ -202,8 +207,16 @@ namespace TokenMonitor {
             var updateActions=new WrapPanel {Margin=new Thickness(0,8,0,0)};
             CheckUpdate=UI.Button("检查更新",async()=>await app.CheckUpdates(true));updateActions.Children.Add(CheckUpdate);
             DownloadUpdate=UI.Button("发布页 ↗",app.OpenUpdate);DownloadUpdate.Margin=new Thickness(8,0,0,0);updateActions.Children.Add(DownloadUpdate);
-            updatePanel.Children.Add(updateActions);Body.Children.Add(updatePanel);
+            updatePanel.Children.Add(updateActions);
             CloseAction=()=>Hide();
+        }
+        public void OpenSettings(string page) {
+            if(SettingsPage==null){SettingsPage=new SettingsView(app,ShowOverview);ContentPanel.Children.Remove(Scroll);ContentPanel.Children.Add(SettingsPage);}
+            SettingsPage.SelectPage(page);Subtitle.Text="设置  /  v3.0.1";
+        }
+        public void ShowOverview() {
+            if(SettingsPage!=null){if(SettingsPage.Busy)return;SettingsPage.ClearSecrets();ContentPanel.Children.Remove(SettingsPage);SettingsPage=null;ContentPanel.Children.Add(Scroll);}
+            Subtitle.Text="用量控制中心  /  v3.0.1";
         }
         public void RenderUpdate(AvailableRelease release,string message) {
             UpdateStatus.Text=(release==null?"":"发现新版本 "+release.Tag+"，可下载更新。")+(message==null?"":(release==null?"":"\n")+message);
@@ -315,15 +328,44 @@ namespace TokenMonitor {
             }
         }
     }
-    public sealed class SettingsView : Shell {
-        public SettingsView(MonitorApp app):base("设置","连接与本机配置",UI.Green,438,740,false) {
+    public sealed class SettingsView : UserControl {
+        readonly Dictionary<string,StackPanel> pages=new Dictionary<string,StackPanel>();
+        readonly Dictionary<string,Button> tabs=new Dictionary<string,Button>();
+        readonly TextBlock heading=UI.Text("",24,UI.Ink,true);
+        readonly TextBlock pageHint=UI.Text("切换分类会保留未保存的输入；返回概览会放弃未保存的修改。",11,UI.Muted);
+        readonly ScrollViewer scroll=new ScrollViewer {VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
+        Button saveButton;
+        TextBlock feedback;
+        string openAiReadIssue;
+        public bool Busy {get;private set;}
+        public string SelectedPage {get;private set;}
+        public ScrollViewer Scroll {get{return scroll;}}
+        public SettingsView(MonitorApp app,Action back) {
+            var root=new Grid {Margin=new Thickness(18,4,18,20)};root.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(170)});root.ColumnDefinitions.Add(new ColumnDefinition());Content=root;
+            var nav=new StackPanel {Margin=new Thickness(0,0,20,0)};root.Children.Add(nav);
+            var returnButton=UI.Button("← 返回概览",()=>{if(!Busy)back();});returnButton.Margin=new Thickness(0,0,0,28);nav.Children.Add(returnButton);
+            nav.Children.Add(UI.Text("设置",12,UI.Muted,true));
+            var pageGrid=new Grid();scroll.Content=pageGrid;
+            foreach(string name in new[]{"外观设置","DeepSeek 密钥","OpenAI 密钥","数据目录","关于软件"}) {
+                var panel=new StackPanel();pages.Add(name,panel);pageGrid.Children.Add(panel);
+                string target=name;var tab=UI.Button(name,()=>SelectPage(target));tab.Margin=new Thickness(0,6,0,0);tabs.Add(name,tab);nav.Children.Add(tab);
+            }
+            var right=new DockPanel {LastChildFill=true,Margin=new Thickness(16,4,4,0)};Grid.SetColumn(right,1);root.Children.Add(right);
+            var header=new StackPanel {Margin=new Thickness(0,0,0,22)};header.Children.Add(heading);pageHint.Margin=new Thickness(0,8,0,0);header.Children.Add(pageHint);DockPanel.SetDock(header,Dock.Top);right.Children.Add(header);
+            var footer=new StackPanel {Margin=new Thickness(0,14,0,0)};DockPanel.SetDock(footer,Dock.Bottom);right.Children.Add(footer);right.Children.Add(scroll);
+            StackPanel Body=pages["外观设置"];
+
             var appearance=new ComboBox {Height=32,FontSize=12,ItemsSource=new[]{"随系统","浅色","深色"},SelectedIndex=Array.IndexOf(new[]{"system","light","dark"},app.Prefs.Appearance)};
             AutomationProperties.SetName(appearance,"外观主题");
             var appearanceRow=UI.Row(UI.Text("外观",13,UI.Ink,true),appearance);appearance.Width=140;appearanceRow.Margin=new Thickness(2,0,2,16);Body.Children.Add(appearanceRow);
             var orbSize=new ComboBox {Width=160,Height=32,ItemsSource=new[]{"80% · 紧凑","100% · 约 2 cm","125% · 清晰","150% · 大号","200% · 特大"},SelectedIndex=Array.IndexOf(OrbView.Scales,app.Prefs.OrbScale)};
-            AutomationProperties.SetName(orbSize,"Codex 悬浮球大小");
+            AutomationProperties.SetName(orbSize,"ChatGPT 悬浮球大小");
             var orbRow=UI.Row(UI.Text("悬浮球大小",13,UI.Ink,true),orbSize);orbRow.Margin=new Thickness(2,0,2,12);Body.Children.Add(orbRow);
             var orbHint=UI.Text("100% 为 76 个逻辑像素；实际尺寸取决于显示器和 Windows 缩放。上下数值均为剩余额度。",11,UI.Muted);orbHint.Margin=new Thickness(2,0,2,16);Body.Children.Add(orbHint);
+            var refreshInterval=new ComboBox {Width=160,Height=32,ItemsSource=new[]{"15 秒","30 秒","60 秒","120 秒"}};
+            refreshInterval.SetBinding(ComboBox.SelectedIndexProperty,new System.Windows.Data.Binding("SelectedIndex"){Source=app.Main.Interval,Mode=System.Windows.Data.BindingMode.TwoWay});
+            AutomationProperties.SetName(refreshInterval,"设置自动刷新间隔");Body.Children.Add(UI.Row(UI.Text("自动刷新",13,UI.Ink,true),refreshInterval));
+            Body=pages["DeepSeek 密钥"];
             var source=new ComboBox {Height=32,FontSize=12,ItemsSource=new[]{"手动 API Key","DeepSeek Harness 登录账户"},SelectedIndex=app.Prefs.DeepSource=="harness"?1:0};
             AutomationProperties.SetName(source,"DeepSeek 余额来源");
             Body.Children.Add(UI.Text("DeepSeek 余额来源",13,UI.Ink,true));Body.Children.Add(source);
@@ -334,6 +376,7 @@ namespace TokenMonitor {
 
             Action sourceChanged=()=>{input.IsEnabled=source.SelectedIndex==0;label.Visibility=hint.Visibility=input.Visibility=source.SelectedIndex==0?Visibility.Visible:Visibility.Collapsed;};
             source.SelectionChanged+=(s,e)=>sourceChanged();sourceChanged();
+            Body=pages["OpenAI 密钥"];
             OpenAiConnection existing=null;string readError=null;
             try {if(File.Exists(Paths.OpenAiKey))existing=OpenAiSecretStore.Read();}
             catch(Exception e) {readError=LocalStorage.Explain(e,"读取 OpenAI 密钥")+" 请重新填写 OpenAI API Key。";}
@@ -349,12 +392,27 @@ namespace TokenMonitor {
             AutomationProperties.SetName(idInput,"OpenAI API Key ID，key_ 开头");Body.Children.Add(idInput);
             var idHint=UI.Text("填写与上方普通密钥对应的 key_ 标识。更换普通密钥后需重新填写 ID。",11,UI.Muted);idHint.Margin=new Thickness(2,9,0,12);Body.Children.Add(idHint);
             var openAiInfo=UI.Text("普通 API Key 可登录并调用 API，无法读取历史用量。统计今日 / 本月 token 还需要 Admin API Key 和对应的 API Key ID。",11.5,UI.Muted);openAiInfo.Margin=new Thickness(2,0,0,12);Body.Children.Add(openAiInfo);
-            bool suppressReset=false,keyIdReset=false,busy=false;
+            bool suppressReset=false,keyIdReset=false;
             api.PasswordChanged+=(s,e)=>{
                 if(!suppressReset&&!keyIdReset&&existing!=null&&api.Password.Length>0&&api.Password.Trim()!=existing.ApiKey) {idInput.Text="";keyIdReset=true;}
             };
-            var message=UI.Text(readError??LocalStorage.Notice??"",11,"#B77436");message.Visibility=string.IsNullOrEmpty(message.Text)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);
+            var message=UI.Text(readError??LocalStorage.Notice??"",11,"#B77436");feedback=message;openAiReadIssue=readError;message.Visibility=string.IsNullOrEmpty(message.Text)?Visibility.Collapsed:Visibility.Visible;message.Margin=new Thickness(2,0,0,10);
             Action<string> showMessage=text=>{message.Text=text;message.Visibility=Visibility.Visible;};
+            bool applyingAppearance=false;
+            Action applyAppearance=()=>{
+                if(applyingAppearance)return;
+                string previous=app.Prefs.Appearance;int previousScale=app.Prefs.OrbScale;
+                try {
+                    app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];
+                    app.Prefs.OrbScale=OrbView.Scales[Math.Max(0,orbSize.SelectedIndex)];app.Prefs.Save();
+                    Appearance.Apply(app.Prefs.Appearance);app.Orb.ApplyScale();showMessage("已自动保存，即时生效。");
+                } catch(Exception e) {
+                    app.Prefs.Appearance=previous;app.Prefs.OrbScale=previousScale;
+                    applyingAppearance=true;appearance.SelectedIndex=Array.IndexOf(new[]{"system","light","dark"},previous);orbSize.SelectedIndex=Array.IndexOf(OrbView.Scales,previousScale);applyingAppearance=false;
+                    showMessage(LocalStorage.Explain(e,"保存外观设置"));
+                }
+            };
+            appearance.SelectionChanged+=(s,e)=>applyAppearance();orbSize.SelectionChanged+=(s,e)=>applyAppearance();
             Func<OpenAiConnection> compose=()=>{
                 string newKey=api.Password.Trim();bool replacing=newKey.Length>0&&(existing==null||newKey!=existing.ApiKey);
                 return new OpenAiConnection {
@@ -365,23 +423,18 @@ namespace TokenMonitor {
             };
             Func<bool> changed=()=>api.Password.Length>0||admin.Password.Length>0||idInput.Text.Trim()!=(existing==null?"":existing.ApiKeyId??"");
             Func<System.Threading.Tasks.Task> connectCurrent=async()=>{
-                var connection=compose();await app.ConnectOpenAi(connection);existing=connection;
+                var connection=compose();await app.ConnectOpenAi(connection);existing=connection;openAiReadIssue=null;
                 suppressReset=true;api.Clear();admin.Clear();idInput.Text=existing.ApiKeyId??"";suppressReset=false;keyIdReset=false;
                 loginHint.Text="已保存普通密钥。留空可保留。";
                 adminHint.Text=string.IsNullOrEmpty(existing.AdminKey)?"读取用量需要组织管理员创建的管理密钥。":"已保存管理密钥。留空可保留。";
                 showMessage(string.IsNullOrEmpty(existing.AdminKey)||string.IsNullOrEmpty(existing.ApiKeyId)?"OpenAI API Key 登录成功。补充管理密钥和对应 ID 后可查看 token 用量。":"OpenAI 已连接，用量按此 API Key ID 筛选。请确认 ID 对应上方普通密钥。");
             };
-            Button save=null,choose=null,connect=null,cancel=null;
-            Action<bool> setBusy=value=>{busy=value;api.IsEnabled=!value;admin.IsEnabled=!value;idInput.IsEnabled=!value;source.IsEnabled=!value;input.IsEnabled=!value&&source.SelectedIndex==0;appearance.IsEnabled=!value;if(save!=null)save.IsEnabled=!value;if(choose!=null)choose.IsEnabled=!value;if(connect!=null)connect.IsEnabled=!value;if(cancel!=null)cancel.IsEnabled=!value;};
-            connect=UI.Button("连接 OpenAI",async()=>{
-                setBusy(true);showMessage("正在验证 OpenAI API Key…");
-                try {await connectCurrent();}
-                catch(Exception e) {showMessage(ConnectionError(e));}
-                finally {setBusy(false);}
-            });connect.SetResourceReference(Button.BackgroundProperty,"ActionBrush");connect.SetResourceReference(Button.ForegroundProperty,"ActionInkBrush");
+            Button save=null,choose=null;
+            Action<bool> setBusy=value=>{Busy=value;returnButton.IsEnabled=!value;foreach(var tab in tabs.Values)tab.IsEnabled=!value;orbSize.IsEnabled=!value;api.IsEnabled=!value;admin.IsEnabled=!value;idInput.IsEnabled=!value;source.IsEnabled=!value;input.IsEnabled=!value&&source.SelectedIndex==0;appearance.IsEnabled=!value;if(save!=null)save.IsEnabled=!value;if(choose!=null)choose.IsEnabled=!value;};
             var keyPage=UI.Button("密钥管理 ↗",()=>UI.Link("https://platform.openai.com/api-keys"));keyPage.Margin=new Thickness(8,0,0,0);
-            var connectionActions=new WrapPanel {Margin=new Thickness(0,0,0,12)};connectionActions.Children.Add(connect);connectionActions.Children.Add(keyPage);Body.Children.Add(connectionActions);Body.Children.Add(message);
+            var connectionActions=new WrapPanel {Margin=new Thickness(0,0,0,12)};connectionActions.Children.Add(keyPage);Body.Children.Add(connectionActions);footer.Children.Add(message);
             var info=UI.Text("密钥由 Windows 当前用户加密保存在本机。ChatGPT 自动使用本机 Codex 的登录账号。",11.5,UI.Muted);info.Margin=new Thickness(2,0,0,14);Body.Children.Add(info);
+            Body=pages["数据目录"];
             var storageLabel=UI.Text("数据目录",11,UI.Muted);storageLabel.Margin=new Thickness(2,0,0,5);Body.Children.Add(storageLabel);
             var storagePath=new TextBox {Text=Paths.Data,IsReadOnly=true,TextWrapping=TextWrapping.Wrap,BorderThickness=new Thickness(0),Background=Brushes.Transparent,FontSize=11,Margin=new Thickness(2,0,0,8)};
             Appearance.Paint(storagePath,TextBox.ForegroundProperty,UI.Muted);Body.Children.Add(storagePath);
@@ -402,21 +455,38 @@ namespace TokenMonitor {
                 string operation="保存密钥",previous=app.Prefs.Appearance,previousSource=app.Prefs.DeepSource;
                 setBusy(true);
                 try {
-                    if(changed()) {operation="连接 OpenAI";showMessage("正在验证 OpenAI API Key…");await connectCurrent();}
+                    if(SelectedPage=="OpenAI 密钥"&&changed()) {operation="连接 OpenAI";showMessage("正在验证 OpenAI API Key…");await connectCurrent();}
                     operation="保存密钥";
-                    if(source.SelectedIndex==0&&input.Password.Length>0)SecretStore.Save(input.Password);
-                    app.Prefs.DeepSource=source.SelectedIndex==1?"harness":"api";
-                    operation="保存设置";app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.OrbScale=OrbView.Scales[Math.Max(0,orbSize.SelectedIndex)];app.Prefs.Save();app.Orb.ApplyScale();
+                    if(SelectedPage=="DeepSeek 密钥"&&source.SelectedIndex==0&&input.Password.Length>0)SecretStore.Save(input.Password);
+                    if(SelectedPage=="DeepSeek 密钥")app.Prefs.DeepSource=source.SelectedIndex==1?"harness":"api";
+                    operation="保存设置";if(SelectedPage=="外观设置"){app.Prefs.Appearance=new[]{"system","light","dark"}[Math.Max(0,appearance.SelectedIndex)];app.Prefs.OrbScale=OrbView.Scales[Math.Max(0,orbSize.SelectedIndex)];}app.Prefs.Save();app.Orb.ApplyScale();
                 } catch(Exception e) {
                     app.Prefs.OrbScale=previousScale;app.Prefs.DeepSource=previousSource;app.Prefs.Appearance=previous;showMessage(operation=="连接 OpenAI"?ConnectionError(e):e is ArgumentException?e.Message:LocalStorage.Explain(e,operation));return;
                 }
                 finally {setBusy(false);}
                 if(previousSource!=app.Prefs.DeepSource){app.DeepData=null;app.DeepError=null;app.Deep.Render(null,null,false);}
-                input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);app.ResetDeepCooldown();app.ResetOpenAiCooldown();Exiting=true;Close();await app.RefreshAll(true);
+                if(SelectedPage=="DeepSeek 密钥")input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);showMessage("已保存"+SelectedPage+"。");if(SelectedPage=="DeepSeek 密钥"){app.ResetDeepCooldown();await app.RefreshDeep(true);}
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
-            cancel=UI.Button("取消",()=>{Exiting=true;Close();});Body.Children.Add(UI.Row(save,cancel));
-            CloseAction=()=>{if(!busy){Exiting=true;Close();}};WindowStartupLocation=WindowStartupLocation.CenterOwner;
+            save.Content="保存密钥设置";saveButton=save;save.HorizontalAlignment=HorizontalAlignment.Left;footer.Children.Add(save);
+            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v3.0.1 · Windows 桌面用量工具",13,UI.Muted));
+            var about=UI.Text("ChatGPT 悬浮球展示 Codex 与 ChatGPT Work 共用的额度。独立查看 DeepSeek 余额及 OpenAI API 用量。",13,UI.Muted);about.Margin=new Thickness(0,20,0,24);Body.Children.Add(about);
+            var updateInfo=UI.Text("",12,UI.Muted);updateInfo.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Text"){Source=app.Main.UpdateStatus});Body.Children.Add(updateInfo);
+            var aboutActions=new WrapPanel {Margin=new Thickness(0,14,0,18)};
+            var check=UI.Button("检查更新",async()=>await app.CheckUpdates(true));check.SetBinding(Button.IsEnabledProperty,new System.Windows.Data.Binding("IsEnabled"){Source=app.Main.CheckUpdate});aboutActions.Children.Add(check);
+            var release=UI.Button("发布页 ↗",app.OpenUpdate);release.SetBinding(Button.ContentProperty,new System.Windows.Data.Binding("Content"){Source=app.Main.DownloadUpdate});release.Margin=new Thickness(8,0,0,0);aboutActions.Children.Add(release);Body.Children.Add(aboutActions);
+            var repository=UI.Button("GitHub 源码 ↗",()=>UI.Link("https://github.com/Ricki0613/TokenMonitor"));repository.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(repository);Body.Children.Add(UI.Text("MIT License · Ricki0613",11,UI.Muted));
+            SelectPage("外观设置");
         }
+        public void SelectPage(string name) {
+            if(Busy||!pages.ContainsKey(name))return;SelectedPage=name;heading.Text=name;
+            foreach(var pair in pages)pair.Value.Visibility=pair.Key==name?Visibility.Visible:Visibility.Collapsed;
+            foreach(var pair in tabs){pair.Value.SetResourceReference(Button.BackgroundProperty,pair.Key==name?"ButtonBrush":"SurfaceBrush");pair.Value.SetResourceReference(Button.ForegroundProperty,pair.Key==name?"InkBrush":"MutedBrush");}
+            if(saveButton!=null)saveButton.Visibility=name=="DeepSeek 密钥"||name=="OpenAI 密钥"?Visibility.Visible:Visibility.Collapsed;
+            pageHint.Text=name=="外观设置"?"修改后立即生效并自动保存。":name=="数据目录"?"选择空目录并完成迁移后立即生效，原目录副本保留。":name=="关于软件"?"版本信息、更新与开源项目。":"填写后点击保存密钥设置；切换分类保留输入，返回概览放弃未保存的修改。";
+            if(feedback!=null){string notice=name=="OpenAI 密钥"?openAiReadIssue:name=="数据目录"?LocalStorage.Notice:null;feedback.Text=notice??"";feedback.Visibility=string.IsNullOrEmpty(notice)?Visibility.Collapsed:Visibility.Visible;}
+            scroll.ScrollToHome();
+        }
+        public void ClearSecrets(){foreach(var panel in pages.Values)foreach(var child in panel.Children.OfType<PasswordBox>())child.Clear();}
         static PasswordBox PasswordInput(string name) {
             var input=new PasswordBox {Height=37,Padding=new Thickness(10,7,10,7),FontSize=14,BorderThickness=new Thickness(1)};
             AutomationProperties.SetName(input,name);return input;

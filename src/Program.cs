@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.0.0.0")]
-[assembly: AssemblyFileVersion("3.0.0.0")]
-[assembly: AssemblyInformationalVersion("3.0.0")]
+[assembly: AssemblyVersion("3.0.1.0")]
+[assembly: AssemblyFileVersion("3.0.1.0")]
+[assembly: AssemblyInformationalVersion("3.0.1")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -102,7 +102,7 @@ namespace TokenMonitor {
             menu.Items.Add("显示 / 隐藏 GPT",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.GptSwitch.IsChecked=!Prefs.Gpt)));
             menu.Items.Add("显示 / 隐藏 DeepSeek",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.DeepSwitch.IsChecked=!Prefs.Deep)));
             menu.Items.Add("显示 / 隐藏 OpenAI API",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.OpenAiSwitch.IsChecked=!Prefs.OpenAi)));
-            menu.Items.Add("检查更新",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>{ShowControl();await CheckUpdates(true);})));
+            menu.Items.Add("检查更新",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>{ShowControl();Main.OpenSettings("关于软件");await CheckUpdates(true);})));
             menu.Items.Add("刷新用量",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>await RefreshAll(true))));
             menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出",null,(s,e)=>Dispatcher.Invoke(new Action(Quit)));
             tray=new Forms.NotifyIcon {Text="Token Monitor · GPT / DeepSeek / OpenAI API",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
@@ -243,7 +243,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.0.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.0.1";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -290,15 +290,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.0.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.0.1");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.0.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.0.1"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.0.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.0.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -322,12 +322,12 @@ namespace TokenMonitor {
                 var mark=Brand.Mark(256);mark.Measure(new Size(256,256));mark.Arrange(new Rect(0,0,256,256));UI.SaveImage(mark,Path.Combine(smokeFolder,"brand.png"));
             }
             if(offline)OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-ui-openai-key",AdminKey="sk-admin-test-only-ui-openai-key",ApiKeyId="key_ui_test"});
-            var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
+            Main.OpenSettings("OpenAI 密钥");var settings=Main.SettingsPage;Main.UpdateLayout();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
             if(offline) {
-                OpenAiUiTests.Run(settings,checks);
+                OpenAiUiTests.Run(settings,checks);SettingsUiTests.Run(this,checks);
                 settings.Scroll.ScrollToEnd();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings-bottom.png"));
             }
-            settings.Exiting=true;settings.Close();
+            Main.ShowOverview();
             if(offline) {
                 Gpt.Render(GptData,null,false);Main.FitToContent();Gpt.FitToContent();Deep.FitToContent();
                 foreach(string theme in new[]{"light","dark","system"}) {
@@ -337,7 +337,15 @@ namespace TokenMonitor {
                     UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-"+theme+".png"));
                     UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+theme+".png"));
                     OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-"+theme+".png"));
-                    var dialog=new SettingsView(this){Owner=Main};dialog.Show();dialog.FitToContent();dialog.UpdateLayout();UI.SaveImage(dialog,Path.Combine(smokeFolder,"settings-"+theme+".png"));dialog.Exiting=true;dialog.Close();
+                    Prefs.Appearance=theme;Main.OpenSettings("外观设置");Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+".png"));
+                    checks[theme+"_native_titlebar_matches"]=Appearance.TitleBarMatches(Main);
+                    foreach(string page in new[]{"DeepSeek 密钥","OpenAI 密钥","数据目录","关于软件"}) {Main.SettingsPage.SelectPage(page);Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+"-"+page+".png"));}
+                    Main.ShowOverview();
+                    SetOrbMode(true);Orb.ContextMenu.PlacementTarget=Orb;Orb.ContextMenu.IsOpen=true;await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+                    var menu=Orb.ContextMenu;menu.UpdateLayout();UI.SaveImage(menu,Path.Combine(smokeFolder,"orb-menu-"+theme+".png"));
+                    checks[theme+"_menu_background_matches"]=((System.Windows.Media.SolidColorBrush)menu.Background).Color==((System.Windows.Media.SolidColorBrush)Resources["CardBrush"]).Color;
+                    checks[theme+"_menu_text_matches"]=((System.Windows.Media.SolidColorBrush)((System.Windows.Controls.MenuItem)menu.Items[0]).Foreground).Color==((System.Windows.Media.SolidColorBrush)Resources["InkBrush"]).Color;
+                    menu.IsOpen=false;SetOrbMode(false);
                     checks[theme+"_ink_updates"]=((System.Windows.Media.SolidColorBrush)Main.GptInfo.Foreground).Color==((System.Windows.Media.SolidColorBrush)Resources["MutedBrush"]).Color;
                 }
                 Appearance.Apply("light");

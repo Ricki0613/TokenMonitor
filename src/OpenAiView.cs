@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,7 +15,7 @@ namespace TokenMonitor {
             var buttons=new WrapPanel {Margin=new Thickness(0,0,0,-6)};
             Refresh=UI.Button("刷新",async()=>await app.RefreshOpenAi(true));Refresh.Margin=new Thickness(0,0,6,6);buttons.Children.Add(Refresh);
             var official=UI.Button("官方用量 ↗",()=>UI.Link("https://platform.openai.com/usage"));official.Margin=new Thickness(0,0,6,6);buttons.Children.Add(official);
-            var settings=UI.Button("设置",()=>new SettingsView(app){Owner=this}.ShowDialog(),"连接 OpenAI API Key");settings.Margin=new Thickness(0,0,6,6);buttons.Children.Add(settings);
+            var settings=UI.Button("设置",()=>{app.ShowControl();app.Main.OpenSettings("OpenAI 密钥");},"连接 OpenAI API Key");settings.Margin=new Thickness(0,0,6,6);buttons.Children.Add(settings);
             Body.Children.Add(buttons);status.Margin=new Thickness(1,13,0,0);Body.Children.Add(status);
             interval.Margin=new Thickness(1,5,0,0);Body.Children.Add(interval);
             CloseAction=()=>app.Main.OpenAiSwitch.IsChecked=false;

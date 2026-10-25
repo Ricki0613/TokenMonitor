@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -60,7 +60,7 @@ namespace TokenMonitor {
             updateTimer.Tick+=async(s,e)=>{if(DateTimeOffset.UtcNow>=nextUpdate)await CheckUpdates(false);};
             updateTimer.Start();
             Dispatcher.BeginInvoke(new Action(async()=>await CheckUpdates(false)),DispatcherPriority.ApplicationIdle);
-            tray.BalloonTipClicked+=(s,e)=>Dispatcher.Invoke(new Action(ShowControl));
+            tray.BalloonTipClicked+=(s,e)=>Dispatcher.Invoke(new Action(()=>{ShowControl();Main.OpenSettings("关于软件");}));
         }
         public async Task CheckUpdates(bool manual) {
             if(smoke||offline||quitting||updateBusy)return;

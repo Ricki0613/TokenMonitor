@@ -4,7 +4,7 @@
 
 **Keep Codex / ChatGPT Work limits, DeepSeek API balances and OpenAI API token usage visible on your Windows desktop.**
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.0/TokenMonitor-v3.0.0-windows-x64.zip) · [v2.1.0 notes](docs/RELEASE_v2.1.0.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.1/TokenMonitor-v3.0.1-windows-x64.zip) · [v3.0.1 notes](docs/RELEASE_v3.0.1.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
 
 > **For in-app update checks, choose v2.1.0 or later.** Older versions require a one-time manual upgrade.
 
@@ -40,7 +40,7 @@ Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the W
 
 ## Quick start
 
-1. Download [TokenMonitor-v3.0.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.0/TokenMonitor-v3.0.0-windows-x64.zip) and extract the entire archive.
+1. Download [TokenMonitor-v3.0.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.1/TokenMonitor-v3.0.1-windows-x64.zip) and extract the entire archive.
 2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
 4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and is enabled after successful sign-in.
@@ -88,3 +88,7 @@ A standard desktop control center and a compact Codex quota orb. The upper teal 
 ![Control center, simulated data](assets/control-v3.png)
 
 100% is 76 logical pixels (approximately 2 cm; physical size depends on display scaling). Existing accounts and configuration are preserved. See [release notes](docs/RELEASE_v3.0.0.md).
+
+## v3.0.1
+
+Fixed dark native title bars and orb context menus. Settings now live inside the main window with Appearance, DeepSeek keys, OpenAI keys, Data directory and About pages. Appearance, size and refresh interval apply immediately; credentials require explicit saving. Renamed the shared Codex / Work quota display to ChatGPT orb. Update controls are on the About page.

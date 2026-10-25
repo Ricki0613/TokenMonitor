@@ -25,7 +25,7 @@ namespace TokenMonitor {
         readonly TextBlock state;
         public bool Exiting;
         public OrbView(MonitorApp app) {
-            this.app=app;Title="Codex 额度 · Token Monitor";
+            this.app=app;Title="ChatGPT 额度 · Token Monitor";
             WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;
             ResizeMode=ResizeMode.NoResize;Topmost=true;ShowInTaskbar=false;
             var canvas=new Canvas {Width=100,Height=100,Background=Brushes.Transparent};
@@ -38,12 +38,12 @@ namespace TokenMonitor {
             Content=new Viewbox {Child=canvas};ApplyScale();Loaded+=(s,e)=>Clamp();
             var menu=new ContextMenu();
             AddMenu(menu,"展开额度详情",()=>app.SetOrbMode(false));AddMenu(menu,"打开控制中心",app.ShowControl);
-            AddMenu(menu,"立即刷新",async()=>await app.RefreshGpt(true));AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();new SettingsView(app){Owner=app.Main}.ShowDialog();});
+            AddMenu(menu,"立即刷新",async()=>await app.RefreshGpt(true));AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();app.Main.OpenSettings("外观设置");});
             AddMenu(menu,"隐藏悬浮球",()=>app.Main.GptSwitch.IsChecked=false);ContextMenu=menu;
             MouseLeftButtonDown+=(s,e)=>{if(e.ClickCount==2){app.SetOrbMode(false);return;}try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
             KeyDown+=(s,e)=>{if(e.Key==Key.Enter)app.SetOrbMode(false);};
             Closing+=(s,e)=>{if(!Exiting){e.Cancel=true;app.Main.GptSwitch.IsChecked=false;}};
-            AutomationProperties.SetName(this,"Codex 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");
+            AutomationProperties.SetName(this,"ChatGPT 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");
         }
         static void AddMenu(ContextMenu menu,string title,Action action){var item=new MenuItem {Header=title};item.Click+=(s,e)=>action();menu.Items.Add(item);}
         static TextBlock Label(Canvas canvas,double top,string text,string color) {
@@ -76,7 +76,7 @@ namespace TokenMonitor {
             Draw(shortArc,ShortText,shortWindow,214,112,"5h");Draw(longArc,LongText,week,340,220,"周");
             state.Text=error!=null?"!":busy?"·":"";
             shortArc.Opacity=longArc.Opacity=error==null?1:0.35;
-            ToolTip="Codex · 剩余额度\n"+ShortText.Text+" / "+LongText.Text+(error!=null?"\n更新失败（显示上次数据）："+error:busy?"\n正在刷新…":"")+(data==null?"":"\n上次同步 "+UI.Clock(data.Fetched))+"\n双击展开详情 · 右键菜单";
+            ToolTip="ChatGPT · Codex / Work 共用剩余额度\n"+ShortText.Text+" / "+LongText.Text+(error!=null?"\n更新失败（显示上次数据）："+error:busy?"\n正在刷新…":"")+(data==null?"":"\n上次同步 "+UI.Clock(data.Fetched))+"\n双击展开详情 · 右键菜单";
             AutomationProperties.SetName(this,ToolTip.ToString());
         }
         static void Draw(Path arc,TextBlock text,QuotaWindow window,double start,double sweep,string label){

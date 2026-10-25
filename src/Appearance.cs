@@ -1,8 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Win32;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 
 namespace TokenMonitor {
     public static class Appearance {
@@ -28,6 +30,23 @@ namespace TokenMonitor {
                 var brush=UI.Brush((Dark?dark:light)[i]);brush.Freeze();
                 Application.Current.Resources[names[i]+"Brush"]=brush;
             }
+            foreach(Window window in Application.Current.Windows)ApplyTitleBar(window);
+        }
+        [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd,int attribute,ref int value,int size);
+        [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr hwnd,int attribute,out int value,int size);
+        public static void ApplyTitleBar(Window window) {
+            if(window.WindowStyle==WindowStyle.None)return;
+            var handle=new WindowInteropHelper(window).Handle;if(handle==IntPtr.Zero)return;
+            int dark=Dark?1:0;
+            // Attribute 20 is supported by current Windows 10/11; older Windows 10 uses 19.
+            if(DwmSetWindowAttribute(handle,20,ref dark,4)!=0)DwmSetWindowAttribute(handle,19,ref dark,4);
+            int caption=Dark?0x251E19:0xF8F7F5,ink=Dark?0xF6F4F1:0x262520;
+            DwmSetWindowAttribute(handle,35,ref caption,4);DwmSetWindowAttribute(handle,36,ref ink,4);
+        }
+        public static bool TitleBarMatches(Window window) {
+            int value;int result=DwmGetWindowAttribute(new WindowInteropHelper(window).Handle,20,out value,4);
+            if(result!=0)result=DwmGetWindowAttribute(new WindowInteropHelper(window).Handle,19,out value,4);
+            return result==0&&value==(Dark?1:0);
         }
         public static void Paint(FrameworkElement element,DependencyProperty property,string color) {
             string key;if(keys.TryGetValue(color,out key))element.SetResourceReference(property,key);
