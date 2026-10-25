@@ -13,3 +13,13 @@
 保留 v3.0.0 发布记录，不覆盖原安装包；v3.0.0 用户可通过更新检查发现此修复版。升级保留账户设置与数据目录。
 
 验证使用模拟账户数据，不发起真实账户请求，也不消耗额度重置次数。
+
+## 界面展示
+
+设置在主窗口内按外观、DeepSeek 密钥、OpenAI 密钥、数据目录和关于软件分类切换。主题、悬浮球大小及刷新间隔即时生效；密钥需点击保存。更新检查与发布页位于关于软件。
+
+![深色设置页面](https://raw.githubusercontent.com/Ricki0613/TokenMonitor/v3.0.1/assets/settings-v3.0.1.png)
+
+![深色右键菜单](https://raw.githubusercontent.com/Ricki0613/TokenMonitor/v3.0.1/assets/menu-v3.0.1.png)
+
+截图使用模拟数据。

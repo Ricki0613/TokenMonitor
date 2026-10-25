@@ -13,3 +13,13 @@
 升级：退出旧版，运行安装包内 Install.cmd 选择原安装目录，或覆盖程序文件。保留原数据目录，无需重新输入已保存的密钥。已有用户启动后仍可使用原详情窗，在控制中心点击“Codex · 悬浮球”即可切换。
 
 验证：离线功能测试、UI 模拟数据测试及安装包完整性 / 自定义路径安装测试。测试不调用真实账户，也不消耗额度重置次数。
+
+## 界面展示
+
+正式桌面控制中心与可展开的额度悬浮球。上方青色短弧显示 5 小时剩余百分比，下方紫色长弧显示每周剩余百分比。支持五档大小、拖动、双击展开和右键操作。
+
+![控制中心](https://raw.githubusercontent.com/Ricki0613/TokenMonitor/v3.0.0/assets/control-v3.png)
+
+<img src="https://raw.githubusercontent.com/Ricki0613/TokenMonitor/v3.0.0/assets/orb-v3.png" width="152" alt="额度悬浮球">
+
+截图使用模拟数据。100% 为 76 个逻辑像素，实际尺寸取决于显示器和 Windows 缩放。
