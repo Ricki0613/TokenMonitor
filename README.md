@@ -6,10 +6,10 @@
 
 A lightweight Windows floating usage monitor for Codex / ChatGPT Work, DeepSeek and OpenAI API. Built with C# and WPF.
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.2.0/TokenMonitor-v2.2.0-windows-x64.zip) · [v2.2.0 说明](docs/RELEASE_v2.2.0.md) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.0/TokenMonitor-v3.0.0-windows-x64.zip) · [v3.0.0 说明](docs/RELEASE_v3.0.0.md) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-2.2.0-10A37F)
+![Version](https://img.shields.io/badge/version-3.0.0-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 > **需要应用内更新检测，请选择 v2.1.0 及以后版本。** v2.0.0 及更早版本没有更新检测，需要先手动升级一次。
@@ -18,6 +18,7 @@ A lightweight Windows floating usage monitor for Codex / ChatGPT Work, DeepSeek 
 
 | 版本 | 日期 | 主要变化 |
 | --- | --- | --- |
+| [v3.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v3.0.0) | 2026-10-25 | 正式控制中心、Codex 双弧百分比悬浮球、五档尺寸和新标志 |
 | [v2.2.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.2.0) | 2026-10-23 | 新增从 DeepSeek Harness 登录账户读取充值、赠送余额，无需 API Key |
 | [v2.1.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.1.0) | 2026-10-11 | 新增启动及定时更新检测、托盘通知、手动检查和 GitHub 发布页下载入口 |
 | [v2.0.0](https://github.com/Ricki0613/TokenMonitor/releases/tag/v2.0.0) | 2026-10-10 | 新增 OpenAI API Key 登录及独立用量浮窗，按指定 Key ID 展示今日、本月 Token 和请求数 |
@@ -43,7 +44,7 @@ ChatGPT 浮窗新增 **重置额度**：显示官方剩余次数，确认后使�
 
 ## 下载、安装与首次使用
 
-1. **下载运行包**：[TokenMonitor-v2.2.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v2.2.0/TokenMonitor-v2.2.0-windows-x64.zip)，右键 → **全部解压**。
+1. **下载运行包**：[TokenMonitor-v3.0.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.0.0/TokenMonitor-v3.0.0-windows-x64.zip)，右键 → **全部解压**。
 2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或分别填写程序位置和数据目录。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
 3. **连接账户**：DeepSeek 在“设置 → DeepSeek 余额来源”选择已登录的 Harness 账户，或填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。OpenAI 在“设置”中使用普通 API Key 登录，读取历史用量还需组织 Admin API Key 和对应的 API Key ID。只开启需要的服务即可。
 4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。
@@ -125,3 +126,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ## DeepSeek Harness 余额
 
 在同一 Windows 用户下先登录 DeepSeek Harness，再选择“设置 → DeepSeek 余额来源 → DeepSeek Harness 登录账户”并保存。无需保持 Harness 运行。按币种显示充值钱包、赠送钱包及合计；不推断 API 可调用状态。凭据只从 `%USERPROFILE%\.dsh\.credentials.yaml` 按需读取，不复制保存，仅发送到固定的 DeepSeek 官方 Platform 域名。原 API Key 模式可随时切回。已验证 Harness 0.2.1-rc.2；自定义数据目录与非官方服务器暂不支持。
+
+## v3.0.0
+
+正式桌面控制中心，配合可随时展开的 Codex 额度悬浮球。青色上短弧显示 5 小时剩余百分比，紫色下长弧显示每周剩余百分比。双击展开，右键操作；设置中可选 80%–200% 五档尺寸。
+
+![控制中心](assets/control-v3.png)
+
+<img src="assets/orb-v3.png" width="152" alt="Codex 悬浮球，演示数据">
+
+截图使用模拟数据；100% 为 76 个逻辑像素，实际物理尺寸由显示器与 Windows 缩放决定。

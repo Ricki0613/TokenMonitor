@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -103,6 +103,9 @@ namespace TokenMonitor {
     public class Preferences {
         public bool Gpt=true, Deep=true, OpenAi=false;
         public int Interval=30;
+        public bool OrbMode=false;
+        public int OrbScale=100;
+        public double OrbX=-1,OrbY=-1;
         public string DeepSource="api";
         public string Appearance="system", PendingResetKey;
         public double GptWidth=368,GptHeight=500,DeepWidth=368,DeepHeight=445;
@@ -114,6 +117,7 @@ namespace TokenMonitor {
         public static Preferences Load() {
             try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences));
                 if(p==null)return new Preferences();
+                if(!OrbView.Scales.Contains(p.OrbScale))p.OrbScale=100;
                 if(p.DeepSource!="harness")p.DeepSource="api";
                 p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;
                 if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";

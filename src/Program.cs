@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("2.2.0.0")]
-[assembly: AssemblyFileVersion("2.2.0.0")]
-[assembly: AssemblyInformationalVersion("2.2.0")]
+[assembly: AssemblyVersion("3.0.0.0")]
+[assembly: AssemblyFileVersion("3.0.0.0")]
+[assembly: AssemblyInformationalVersion("3.0.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -25,6 +25,7 @@ namespace TokenMonitor {
         public MainView Main;
         public UsageView Gpt,Deep;
         public OpenAiView OpenAi;
+        public OrbView Orb;
         readonly CodexProvider codex=new CodexProvider();
         readonly DeepProvider deep=new DeepProvider();
         readonly OpenAiProvider openAi=new OpenAiProvider();
@@ -59,6 +60,7 @@ namespace TokenMonitor {
             if(!smoke&&!string.IsNullOrEmpty(LocalStorage.Notice))Main.Subtitle.Text="本机配置需要处理，请打开设置查看";
             Gpt=new UsageView(this,true);Deep=new UsageView(this,false);
             OpenAi=new OpenAiView(this);
+            Orb=new OrbView(this);Orb.Place();Orb.LocationChanged+=(s,a)=>QueueSave();
             OpenAi.RestoreSize(Prefs.OpenAiWidth,Prefs.OpenAiHeight,Prefs.OpenAiAutoHeight);
             Gpt.RestoreSize(Prefs.GptWidth,Prefs.GptHeight,Prefs.GptAutoHeight);Deep.RestoreSize(Prefs.DeepWidth,Prefs.DeepHeight,Prefs.DeepAutoHeight);
             Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();OpenAi.FitHeight();
@@ -68,7 +70,7 @@ namespace TokenMonitor {
             bool stack=area.Height>=Gpt.Height+Deep.Height+50;
             Deep.Place(Prefs.DeepX,Prefs.DeepY,Math.Max(area.Left,area.Right-390-(stack?0:370)),stack?area.Top+Gpt.Height+35:area.Top+30);
             OpenAi.Place(Prefs.OpenAiX,Prefs.OpenAiY,Math.Max(area.Left,area.Right-770),area.Top+30);
-            Main.Show();if(Prefs.Gpt)Gpt.Show();if(Prefs.Deep)Deep.Show();if(Prefs.OpenAi)OpenAi.Show();
+            Main.Show();if(Prefs.Gpt){if(Prefs.OrbMode)Orb.Show();else Gpt.Show();}if(Prefs.Deep)Deep.Show();if(Prefs.OpenAi)OpenAi.Show();
             saveTimer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(400)};
             saveTimer.Tick+=(s,a)=>{saveTimer.Stop();Save();};
             Main.LocationChanged+=(s,a)=>QueueSave();Gpt.LocationChanged+=(s,a)=>QueueSave();Deep.LocationChanged+=(s,a)=>QueueSave();
@@ -107,7 +109,13 @@ namespace TokenMonitor {
             tray.DoubleClick+=(s,e)=>Dispatcher.Invoke(new Action(ShowControl));
         }
         public void ShowControl() {Main.Show();Main.WindowState=WindowState.Normal;Main.Activate();}
-        public void SetGpt(bool show) {Prefs.Gpt=show;if(show){Gpt.Show();RefreshGpt(true);}else Gpt.Hide();Save();UpdateLabels();}
+        public void SetGpt(bool show) {Prefs.Gpt=show;if(show){if(Prefs.OrbMode)Orb.Show();else Gpt.Show();RefreshGpt(true);}else {Gpt.Hide();Orb.Hide();}Save();UpdateLabels();}
+        public void SetOrbMode(bool compact) {
+            Prefs.OrbMode=compact;
+            Gpt.Hide();Orb.Hide();
+            if(Prefs.Gpt){if(compact){Orb.ApplyScale();Orb.Show();}else {Gpt.Show();Gpt.Activate();}}
+            Save();UpdateLabels();
+        }
         public void SetDeep(bool show) {Prefs.Deep=show;if(show){Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
         public void ResetDeepCooldown() {deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.MinValue;deepFailures=0;}
         public void SetOpenAi(bool show) {Prefs.OpenAi=show;if(show){OpenAi.Show();RefreshOpenAi(true);}else OpenAi.Hide();Save();UpdateLabels();}
@@ -199,6 +207,7 @@ namespace TokenMonitor {
         }
         public void UpdateLabels() {
             if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
+            Orb.Render(GptData,GptError,gptBusy);
             string summary="等待同步";
             if(GptData!=null) {
                 var group=GptData.Groups.FirstOrDefault(x=>x.Id=="codex")??GptData.Groups[0];
@@ -220,7 +229,8 @@ namespace TokenMonitor {
         }
         public void Save() {
             if(smoke||quitting||Main==null||Gpt==null||Deep==null||OpenAi==null)return;
-            Prefs.MainX=Main.Left;Prefs.MainY=Main.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
+            Prefs.OrbX=Orb.Left;Prefs.OrbY=Orb.Top;
+            Prefs.MainX=Main.WindowState==WindowState.Normal?Main.Left:Main.RestoreBounds.Left;Prefs.MainY=Main.WindowState==WindowState.Normal?Main.Top:Main.RestoreBounds.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
             Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
             Prefs.DeepWidth=Deep.Width;Prefs.DeepHeight=Deep.Height;Prefs.DeepAutoHeight=Deep.AutoHeight;
             Prefs.OpenAiX=OpenAi.Left;Prefs.OpenAiY=OpenAi.Top;Prefs.OpenAiWidth=OpenAi.Width;Prefs.OpenAiHeight=OpenAi.Height;Prefs.OpenAiAutoHeight=OpenAi.AutoHeight;
@@ -233,7 +243,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v2.2.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.0.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -241,7 +251,7 @@ namespace TokenMonitor {
             if(updateTimer!=null)updateTimer.Stop();updates.Dispose();
             if(timer!=null)timer.Stop();if(saveTimer!=null)saveTimer.Stop();if(!smoke)SystemEvents.UserPreferenceChanged-=SystemAppearanceChanged;
             if(tray!=null){tray.Visible=false;tray.Dispose();}
-            codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
+            Orb.Exiting=true;codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
         }
         async Task RunSmoke() {
             Directory.CreateDirectory(smokeFolder);
@@ -280,18 +290,36 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v2.2.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.0.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v2.2.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.0.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v2.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v2.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
+            }
+            if(offline) {
+                checks["main_is_standard_window"]=Main.WindowStyle==WindowStyle.SingleBorderWindow&&!Main.Topmost&&Main.ShowInTaskbar;
+                SetOrbMode(true);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+                checks["orb_replaces_details"]=Orb.IsVisible&&!Gpt.IsVisible&&Prefs.Gpt;
+                checks["orb_shows_remaining"]=Orb.ShortText.Text.Contains("72%")&&Orb.LongText.Text.Contains("39%");
+                foreach(int scale in OrbView.Scales){Prefs.OrbScale=scale;Orb.ApplyScale();Orb.UpdateLayout();checks["orb_size_"+scale]=Math.Abs(Orb.Width-76.0*scale/100)<1.1;UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-"+scale+".png"));}
+                Orb.Render(null,null,false);checks["orb_unknown_not_zero"]=Orb.ShortText.Text.Contains("—")&&Orb.LongText.Text.Contains("—");
+                var boundary=SampleGpt();boundary.Groups[0].Windows[0].Used=100;boundary.Groups[0].Windows[1].Used=0;
+                Orb.Render(boundary,null,false);checks["orb_zero_and_full"]=Orb.ShortText.Text.Contains("0%")&&Orb.LongText.Text.Contains("100%");
+                boundary.Groups[0].Id="other";Orb.Render(boundary,null,false);checks["orb_does_not_substitute_other_pool"]=Orb.ShortText.Text.Contains("—");
+                Prefs.OrbMode=true;Prefs.OrbScale=150;Prefs.Save();var restored=Preferences.Load();checks["orb_preferences_roundtrip"]=restored.OrbMode&&restored.OrbScale==150;
+                Prefs.OrbScale=17;Prefs.Save();checks["orb_invalid_scale_falls_back"]=Preferences.Load().OrbScale==100;
+                Orb.Render(GptData,"模拟断网",false);checks["orb_marks_stale"]=Orb.ToolTip.ToString().Contains("更新失败");UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-stale.png"));
+                Main.GptSwitch.IsChecked=false;checks["switch_hides_both_codex_views"]=!Orb.IsVisible&&!Gpt.IsVisible;
+                Main.GptSwitch.IsChecked=true;checks["switch_restores_orb_mode"]=Orb.IsVisible&&!Gpt.IsVisible;
+                Prefs.OrbScale=100;Orb.ApplyScale();SetOrbMode(false);checks["details_restore"]=Gpt.IsVisible&&!Orb.IsVisible;
+                var mark=Brand.Mark(256);mark.Measure(new Size(256,256));mark.Arrange(new Rect(0,0,256,256));UI.SaveImage(mark,Path.Combine(smokeFolder,"brand.png"));
             }
             if(offline)OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-ui-openai-key",AdminKey="sk-admin-test-only-ui-openai-key",ApiKeyId="key_ui_test"});
             var settings=new SettingsView(this){Owner=Main};settings.Show();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
