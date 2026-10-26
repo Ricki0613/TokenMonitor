@@ -1,89 +1,118 @@
-<img src="assets/TokenMonitor.png" width="72" alt="Token Monitor">
+<p align="center">
+  <img src="assets/TokenMonitor.png" width="72" alt="Token Monitor logo">
+</p>
+<h1 align="center">Token Monitor</h1>
+<p align="center"><strong>Your limits, balances and API usage at a glance.</strong><br>A Windows desktop monitor for Codex / ChatGPT Work, DeepSeek and OpenAI API.</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.1-10A37F" alt="Version 3.2.1"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>Download for Windows</strong></a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="docs/USER_GUIDE.zh-CN.md">User guide (Chinese)</a> ·
+  <a href="README.md">中文</a>
+</p>
 
-# Token Monitor
+[![Token Monitor dashboard and ChatGPT quota orb](assets/readme-hero.png)](assets/readme-hero.png)
 
-**Keep Codex / ChatGPT Work limits, DeepSeek API balances and OpenAI API token usage visible on your Windows desktop.**
+<p align="center"><sub>Dashboard and desktop orb shown together · Simulated data · Click for the full-resolution image</sub></p>
 
-Manage your accounts in the control center, then keep usage nearby with a compact orb or detailed floating windows.
+## Keep usage close
 
-![Token Monitor control center](assets/overview.png)
+See three services in one dashboard while coding or calling models, then keep the figures you need on your desktop.
 
-<img src="assets/orb-v3.png" width="114" alt="ChatGPT quota orb">
+- **Compact quota orb**: two percentages show remaining 5-hour and weekly quota. Drag to move, double-click for details, and choose from five sizes.
+- **Independent floating windows**: show, hide, move and resize each service separately. Connected services keep refreshing when their floats are hidden.
+- **Local history**: 7-day and 30-day charts with 90-day retention. Missing observations remain missing.
+- **Personal appearance**: light, dark or system theme, three font sizes and persistent sidebar navigation.
+- **Updates and rollback**: download in the app, verify the package, confirm a restart, and retain the previous version for rollback.
 
-The upper arc shows 5-hour remaining quota; the lower arc shows weekly remaining quota. Double-click to expand. Screenshots use simulated data.
+## Supported data
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+| Service | What you can see | Connection |
+| --- | --- | --- |
+| **ChatGPT / Codex** | Shared Codex / ChatGPT Work remaining quota, reset times and available reset credits | Locally signed-in Codex |
+| **DeepSeek** | Available, topped-up and granted balances, separated by currency | API Key or local DeepSeek Harness sign-in |
+| **OpenAI API** | Today/month tokens, input/output/cached input and request counts for a selected API Key ID | Ordinary API Key; history also requires an Admin API Key and matching Key ID |
 
-## Update checks
-
-Checks the latest stable GitHub Release at startup and every 6 hours after success. A new version appears in Settings → About with one tray notification per version per run. Check manually from Settings → About or the tray (requests are at least one minute apart). Failures retry after one hour and do not interrupt usage monitoring. The download button fetches and verifies the release ZIP, then asks to restart and install. The previous version remains available for rollback.
-
-Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the Windows ZIP and mark it **Latest**. Drafts, prereleases and Git tags without a release do not notify users. Checks send no credentials, settings or account usage to GitHub; GitHub receives ordinary request information such as IP address and app version.
-
-## New in v3.2.0
-
-A data-first dashboard with two ChatGPT quota bars, prominent DeepSeek balances, and OpenAI daily/monthly totals. Each card has connection settings and a labeled float switch. First launch starts with no floats. API key verification and historical usage connection are separate steps with actionable status messages. Hidden floats keep monitoring; floating window height is bounded by content to avoid empty space.
-
-## Features
-
-- A desktop control center, a ChatGPT quota orb with five sizes, and categorized settings within the main window. Appearance, size and refresh interval apply immediately; credentials require saving.
-
-- Three independent, draggable, resizable, always-on-top windows with separate visibility switches.
-- Cards reflow without shrinking text. Default height fits content; the ↕ button restores that height.
-- Light, dark and system appearance, with saved window sizes and automatic system-theme updates.
-- Redeem an official GPT quota-reset credit after confirmation, with retries that avoid duplicate redemption.
-- Codex / ChatGPT Work remaining quota, official time windows, reset times and credits.
-- DeepSeek available, topped-up and granted balances, displayed separately for each currency.
-- OpenAI API usage for a configured API Key ID: input, output, cached input tokens and request counts for today and this month in UTC+8. Cached input is a subset of input tokens.
-- Refresh every 15, 30, 60 or 120 seconds, or refresh manually.
-- System tray, saved positions, single-instance launch and clear stale-data indicators.
-- DeepSeek and OpenAI credentials encrypted for the current Windows user using DPAPI.
+ChatGPT data covers the Codex / ChatGPT Work quota pool. OpenAI statistics cover requests reported by the official `usage/completions` endpoint; cached input is already included in input tokens.
 
 ## Quick start
 
-1. Download [TokenMonitor-v3.2.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) and extract the entire archive.
-2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
-3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
-4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and can be shown explicitly after connecting.
+**Requires Windows 10 / 11 x64 and .NET Framework 4.8.** Python, Node and the .NET SDK are not needed to run the app. The UI is currently Chinese.
 
-Requires Windows 10 / 11 x64 and .NET Framework 4.8. The application UI is currently Chinese; reset times use Beijing time (UTC+8). Python, Node and the .NET SDK are not required to run the app.
+1. [Download the Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) and extract the entire archive. Choose the runtime ZIP rather than GitHub's generated `Source code` archive.
+2. Run **Install.cmd** and choose installation and data directories. The installer creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
+3. Use each card's **Connection settings** to connect the services you need, then enable their floats or the quota orb.
 
-Normal operation and credential saving require no administrator privileges. Data defaults to `%LOCALAPPDATA%\TokenMonitor`. Choose a writable empty folder in the installer or **Settings → Choose data directory** to copy and verify existing settings and encrypted credentials before switching. The original remains a backup, and the selected path is remembered for your Windows user across restarts. Copying program files into a protected directory can still require Windows permission. The ZIP does not need a pre-created `data` folder.
+Refresh defaults to **30 seconds**. Select 15 / 30 / 60 / 120 seconds or refresh manually from the dashboard. Closing the main window hides it to the tray; double-click the tray icon to restore it, or use its menu to exit.
 
-To upgrade v1.0.0/v1.1.0, exit the old app from its tray menu, replace the program files in place and keep the old `data` directory. On startup, valid missing settings and a decryptable key are copied to per-user storage; originals remain and existing per-user data takes precedence. Run once in the old location before relocating the app. See [installation and troubleshooting](docs/START_HERE.zh-CN.md).
+See [installation and troubleshooting](docs/START_HERE.zh-CN.md) and the [full user guide](docs/USER_GUIDE.zh-CN.md), both in Chinese.
 
-The GPT window reports **Codex / ChatGPT Work subscription quotas**, not every ChatGPT chat model's message limit. The DeepSeek window reports **account balances**, not historical account-wide token counts. The app does not send model inference requests to check usage.
+### DeepSeek: API Key or Harness
 
-OpenAI sign-in validates the ordinary key with `GET /v1/models`; restricted keys must allow this read operation. Historical usage comes from the official organization `usage/completions` endpoint and requires an **Admin API Key plus the target API Key ID**. Ordinary keys alone cannot retrieve organization usage; the window shows a configuration prompt until both fields are supplied. It reports model requests covered by that endpoint, not totals for every API endpoint, account balances, remaining tokens or ChatGPT subscriptions. Usage may be delayed.
+Enter an API Key in **DeepSeek 密钥**, or sign in to Harness under the same Windows user and select **DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户**. Save the selection; Harness does not need to remain running.
 
-Organization owners can create an Admin API Key at [Admin keys](https://platform.openai.com/settings/organization/admin-keys). Obtain the exact target key ID from the official project API-key listing endpoint; it is an identifier, not the `sk-…` secret. Check the key's name, creation time and redacted value to identify the signed-in key. The app does not infer that association. See the [setup guide](docs/USER_GUIDE.zh-CN.md).
+Harness mode combines recharge and bonus wallets per currency. It reads the default local grant on demand without copying it into Token Monitor. You can switch between the two sources. Custom Harness data directories and unofficial servers are unsupported. See [credential handling](SECURITY.md).
 
-## Build and test
+### OpenAI: key verification and usage access
+
+Verify your ordinary API Key, then supply an organization **Admin API Key** and the matching **API Key ID** (`key_…`). Successful ordinary-key verification does not grant access to usage history. Incomplete configuration shows the next step rather than a zero-usage result. See the [setup guide](docs/USER_GUIDE.zh-CN.md).
+
+## History, updates and local data
+
+### 7-day and 30-day trends
+
+Charts use Beijing time (UTC+8). ChatGPT and DeepSeek retain the latest successful observation per 15-minute bucket. These are local-source histories; changing the signed-in account affects the curve.
+
+OpenAI daily totals are stored separately by a hash of Key ID. Each fetch revises the retrieved current-month daily values; earlier months retain previously collected observations. Today's totals are provisional.
+
+**Balance changes are not spending.** Top-ups, grants and refunds also affect DeepSeek balances.
+
+### In-app updates
+
+Open **关于软件** to check updates, read release notes and download a package. The app checks SHA-256 and executable version before asking to restart and install. Settings, credentials and history are retained; the previous program version can be restored from the same page.
+
+Stable releases are checked at startup and every six hours after a successful check. Network failures and GitHub rate limits do not stop usage monitoring; a manual release-page link remains available. Versions v3.1.0 and earlier need a manual first upgrade.
+
+[Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md)
+
+### Your data stays local
+
+Normal operation and credential saving need no administrator privileges. Data defaults to `%LOCALAPPDATA%\TokenMonitor`. Select a writable empty folder in **数据目录** to copy and verify settings, credentials and history before switching; the original remains a backup.
+
+- DeepSeek and OpenAI keys use Windows DPAPI encryption for the current user.
+- Harness credentials are read on demand and sent only to the official DeepSeek service.
+- Usage checks do not send model inference requests. Redeeming an official quota-reset credit requires separate confirmation.
+- Update checks send no account usage, credentials or local settings to GitHub.
+
+See [SECURITY.md](SECURITY.md) for details. Statistics can be delayed by the provider. Automatic startup is not implemented, and releases are currently unsigned.
+
+## Development and contributions
+
+[Issues and feature requests](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) and pull requests are welcome. Keep real credentials and account data out of screenshots, logs and commits. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+<details>
+<summary>Build and verify from source</summary>
 
 ```powershell
+git clone https://github.com/Ricki0613/TokenMonitor.git
+cd TokenMonitor
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-Output: `build/`. Offline self-tests cover credential storage, legacy migration, safe directory switching, OpenAI usage parsing and failure states. UI checks use mock data. These tests require no real accounts or API keys, send no model inference requests and never consume reset credits. UI screenshots are written to `build/ui-test-*/`. Runtime data and credentials are excluded from Git.
+Output: `build/`. Builds use the .NET Framework C# compiler. Offline tests use simulated data and need no real accounts or keys. Generate packages with `scripts/package.ps1` and check installation with `scripts/test-package.ps1 -Archive <ZIP>`.
 
-The release is unsigned. Automatic startup is not implemented. Updates download on request and require confirmation before restarting. Update checks require v2.1.0 or later. Service-side updates or API changes may affect availability.
+The README image is generated at 2x resolution from native WPF controls using `scripts/render-readme.ps1` and simulated data. Maintainers should publish a stable Release containing the runtime ZIP and mark it Latest; a Git tag alone does not trigger update notices.
 
-## Contribute
-
-Issues and pull requests are welcome. Include reproduction steps or the use case, and keep credentials and account data out of reports. See [CONTRIBUTING.md](CONTRIBUTING.md).
+</details>
 
 ## License
 
-[MIT](LICENSE). An independent project, not affiliated with OpenAI or DeepSeek.
+[MIT License](LICENSE) · Copyright (c) 2026 Ricki0613
 
-## DeepSeek Harness account balance
-
-Sign in to Harness under the same Windows user, then select the Harness account in Settings → DeepSeek balance source and save. Harness need not remain running. Reads the default `%USERPROFILE%\.dsh\.credentials.yaml` grant on each refresh; never copies it into Token Monitor storage. Requests go only to the fixed official DeepSeek Platform host, without redirects. Recharge and bonus wallets are summed per currency; API availability is not inferred. Existing configurations retain manual API Key mode. Verified with Harness Desktop 0.2.1-rc.2; custom Harness data roots and unofficial servers are unsupported.
-
-## v3.2.0 history and updates
-
-The fixed-size dashboard has persistent left navigation, top-right actions and three font sizes. Local 7/30-day charts retain 90 days of successful observations. Balance changes are not spending; credits, top-ups and refunds affect them. OpenAI daily totals revise fetched current-month data, separated by key ID. Missing history is not fabricated.
-
-From v3.2.0, About downloads the official release ZIP, checks GitHub SHA-256 and executable version, then asks to restart. Previous binaries remain available for rollback; settings, credentials and history stay in place. Older clients need a manual upgrade first.
+An independent project, not affiliated with OpenAI or DeepSeek.

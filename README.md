@@ -1,85 +1,102 @@
-<img src="assets/TokenMonitor.png" width="72" alt="Token Monitor">
+<p align="center">
+  <img src="assets/TokenMonitor.png" width="72" alt="Token Monitor logo">
+</p>
+<h1 align="center">Token Monitor</h1>
+<p align="center"><strong>额度、余额、API 用量，一眼可见。</strong><br>为 Windows 桌面打造的用量监控工具，支持 Codex / ChatGPT Work、DeepSeek 与 OpenAI API。</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.1-10A37F" alt="Version 3.2.1"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
+  <a href="#快速开始">快速开始</a> ·
+  <a href="docs/USER_GUIDE.zh-CN.md">使用指南</a> ·
+  <a href="README.en.md">English</a>
+</p>
 
-# Token Monitor
+[![Token Monitor 控制中心与 ChatGPT 悬浮球](assets/readme-hero.png)](assets/readme-hero.png)
 
-**Windows 桌面用量悬浮窗：随时查看 Codex / ChatGPT Work 额度、DeepSeek API 余额与 OpenAI API Token 用量。**
+<p align="center"><sub>主界面与桌面悬浮球组合展示 · 模拟数据 · 点击图片查看高清原图</sub></p>
 
-一体化圆角主窗口使用内部 logo 与最小化／关闭按钮，悬浮球仅显示百分比。概览直接展示三种服务用量；常驻左栏切换历史趋势与设置，支持 7／30 天图表、小／中／大字号，以及应用内下载、校验、重启更新与回退。
+## 用量就在手边
 
-![Token Monitor 控制中心](assets/overview.png)
+写代码、调用模型时，不必来回打开用量页面。Token Monitor 在一个概览中汇集三种服务，也能把你关心的数据留在桌面上。
 
-<img src="assets/orb-v3.png" width="114" alt="ChatGPT 额度悬浮球">
+- **轻巧悬浮球**：两行百分比分别显示 5 小时和每周剩余额度；可拖动，双击展开详情，支持五档大小。
+- **独立浮窗**：ChatGPT、DeepSeek、OpenAI 各自开关，支持拖动与调整尺寸。隐藏浮窗后，已连接服务继续刷新。
+- **本地历史趋势**：查看近 7 天／30 天变化，保留 90 天记录；缺失数据不补造。
+- **按习惯显示**：浅色、深色、随系统主题，小／中／大字号，常驻左侧导航。
+- **更新与回退**：应用内下载安装包，校验后确认重启；保留上一版，支持回退。
 
-ChatGPT 悬浮球：上方为 5 小时剩余额度，下方为每周剩余额度；双击展开详情。界面展示使用模拟数据。
+## 支持哪些数据
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) · [发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
-
-![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-3.2.1-10A37F)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
-## 一眼看清三种用量
-
-| ChatGPT 窗口 | DeepSeek 窗口 | OpenAI API 窗口 |
+| 服务 | 可以查看 | 连接方式 |
 | --- | --- | --- |
-| Codex / ChatGPT Work 剩余额度百分比 | 可用余额 | 指定 API Key ID 的今日、本月用量 |
-| 官方返回的 5 小时、每周等额度窗口 | 充值余额与赠送余额 | 输入、输出 Token 与请求数 |
-| 北京时间重置时间与倒计时 | 人民币、美元分别显示 | 缓存输入 Token，属于输入 Token 的子集 |
-| 额外 credits 与其他官方额度池 | 余额是否支持继续调用 API | 按北京时间（UTC+8）划分统计周期 |
+| **ChatGPT / Codex** | Codex 与 ChatGPT Work 共用的剩余额度、重置时间、可用重置次数 | 使用本机已登录的 Codex |
+| **DeepSeek** | 可用余额、充值余额、赠送余额，按币种分别显示 | 手动 API Key 或本机 DeepSeek Harness 登录状态 |
+| **OpenAI API** | 指定 API Key ID 的今日／本月 tokens、输入／输出／缓存输入、请求数 | 普通 API Key；历史用量另需 Admin API Key 与匹配的 Key ID |
 
-ChatGPT 可切换为悬浮球，支持五档大小。设置在主窗口内按类别切换；外观、大小和刷新间隔即时生效，密钥需点击保存。
+ChatGPT 数据不涵盖普通聊天中所有模型的消息限额。OpenAI 统计范围为官方 `usage/completions` 接口覆盖的请求，缓存输入属于输入 tokens，不重复相加。
 
-首次使用先从卡片的“连接设置”选择服务；不会自动弹出未配置的浮窗。隐藏浮窗后，已连接服务仍在概览刷新。OpenAI 分别验证普通密钥与历史用量权限，缺少配置时提示下一步。
+## 快速开始
 
-三个窗口各自有显示开关，可以拖动、缩放、置顶、收起到托盘，并记住位置与尺寸。主窗口固定尺寸、卡片不拉伸，外观支持小／中／大字号；浮窗卡片随宽度重排；浮窗最大高度随内容变化，避免拉高后留白；默认高度紧贴内容，点击顶部 **↕** 可恢复贴合高度。设置支持 **浅色 / 深色 / 随系统**。默认每 **30 秒**刷新，可选 15 / 30 / 60 / 120 秒，也能随时手动刷新。网络异常时会标记旧数据与最后成功时间。
+**运行环境：Windows 10 / 11 x64、.NET Framework 4.8。** 运行时无需 Python、Node 或 .NET SDK。
 
-ChatGPT 详情浮窗支持 **重置额度**：显示官方剩余次数，确认后使用账户的一次重置权益，与 GPT 内使用重置次数相同。结果不确定时可安全重试，避免重复扣次数。
+1. [下载 Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip)，右键选择 **全部解压**。请下载运行包，而非 GitHub 自动生成的 `Source code`。
+2. 运行 **Install.cmd**，选择程序与数据目录；安装助手会创建桌面和开始菜单快捷方式。也可直接运行解压后的 `TokenMonitor.exe`。
+3. 从卡片的 **连接设置** 接入需要的服务，再按需打开浮窗或悬浮球。
 
-## 下载、安装与首次使用
+自动刷新默认 **30 秒**，可在账户概览选择 15 / 30 / 60 / 120 秒或立即刷新。关闭主窗口会收起到托盘；双击托盘图标恢复，托盘菜单可彻底退出。
 
-1. **下载运行包**：[TokenMonitor-v3.2.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip)，右键 → **全部解压**。
-2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或分别填写程序位置和数据目录。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
-3. **连接账户**：DeepSeek 在“设置 → DeepSeek 密钥 → DeepSeek 余额来源”选择已登录的 Harness 账户，或填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。OpenAI 在“设置”中使用普通 API Key 登录，读取历史用量还需组织 Admin API Key 和对应的 API Key ID。只开启需要的服务即可。
-4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。
+安装或连接遇到问题？查看 [安装与排错](docs/START_HERE.zh-CN.md) 和 [完整使用指南](docs/USER_GUIDE.zh-CN.md)。
 
-**正常运行和保存 Key 不需要管理员权限。** 安装位置和数据目录均可自选；数据默认保存在 `%LOCALAPPDATA%\TokenMonitor`。也可在 **设置 → 数据目录 → 选择数据目录** 指定自己的可写空文件夹，配置和密钥会自动复制、校验，成功后启用新路径，原目录保留备份。重启后继续使用所选路径。安装包无需包含 `data` 文件夹；将运行文件复制到受保护目录时，Windows 可能要求一次文件操作授权。
+### DeepSeek：API Key 或 Harness，任选其一
 
-**升级旧版**：先从托盘退出，将新文件覆盖到原目录并保留旧 `data`，正常启动后自动迁移可用配置。已有新版用户配置优先，旧文件保留。迁移完成后可再换安装位置。
+- **API Key**：在左栏「DeepSeek 密钥」中选择手动 API Key，填写并保存。
+- **Harness 登录账户**：先在同一 Windows 用户下登录 DeepSeek Harness，再选择「DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户」并保存，无需保持 Harness 运行。
 
-旧版配置中的 GPT、DeepSeek 开关和窗口布局继续保留，新增 OpenAI 窗口默认关闭；连接后在概览刷新，浮窗按需手动开启。
+Harness 模式按币种合并充值与赠送钱包；凭据从默认本机位置按需读取，不复制到 Token Monitor。两种来源可以切换。当前不支持自定义 Harness 数据目录或非官方服务器，详见 [凭据处理说明](SECURITY.md)。
 
-遇到保存失败、加密失败或缺少运行环境时，按 [安装与排错说明](docs/START_HERE.zh-CN.md) 操作。设置页可查看数据目录及具体错误代码。
+### OpenAI：验证密钥与读取用量分两步
 
-**系统要求**：Windows 10 / 11 x64、.NET Framework 4.8。监控 GPT 时需要安装并登录 Codex。运行主程序不需要 Python、Node 或 .NET SDK。
+先验证普通 API Key，再填写组织 **Admin API Key** 与对应的 **API Key ID**（`key_…`）。普通密钥验证成功不代表已获得历史用量权限；未配置完整时会显示下一步提示，不会误报零用量。具体步骤见 [OpenAI 连接说明](docs/USER_GUIDE.zh-CN.md)。
 
-Release 中的 Windows ZIP 是可直接运行的程序；GitHub 自动生成的 `Source code` 压缩包用于开发。
+## 历史、更新与数据保存
 
-## 更新检测
+### 查看 7 天／30 天趋势
 
-启动时自动检查 GitHub 最新正式 Release，成功后每 6 小时复查。新版会显示在“设置 → 关于软件”，并通过托盘通知提醒；同一版本在本次运行中只通知一次。“设置 → 关于软件”或托盘菜单可手动 **检查更新**，两次请求至少间隔 1 分钟。
+左栏「历史趋势」显示 ChatGPT 剩余额度、DeepSeek **余额变化**与 OpenAI 每日 tokens，按北京时间（UTC+8）显示。
 
-点击 **下载更新 ↗** 在应用内下载本项目运行包，核对 GitHub 提供的 SHA-256 和包内版本，确认后退出、备份、替换并重启。上一版保存在程序目录的 `previous-version`，可在「关于软件」回退；数据目录保持原样。备份也保留在 `updates` 中。缺少有效摘要、下载失败或校验失败时不安装，可使用「手动下载 / 发布页」。v3.1.0 及更早版本首次升级仍需手动安装。
+- ChatGPT 与 DeepSeek 每 15 分钟保留最新成功采样；按本机来源记录，切换登录账号会影响曲线。
+- OpenAI 按 Key ID 摘要分别保存，每次查询修正已获取的本月每日值；过去月份仅保留已采集的数据，当天值尚未结算。
+- **余额变化不等于消费。** 充值、赠送和退款都会影响余额，不能把余额下降直接当作消费金额。
 
-## 本地历史趋势
+### 在应用内更新
 
-左栏「历史趋势」提供近 7 天 / 30 天图表。ChatGPT 与 DeepSeek 每 15 分钟保留最新成功采样，OpenAI 按北京时间保存已查询的本月每日 tokens，重复查询修正而不累加。保留 90 天，不补造离线数据。DeepSeek 的下降只称为**余额变化**，不当作消费；来源与币种分别显示。ChatGPT / DeepSeek 按本机来源记录，切换账号会影响曲线；OpenAI 按密钥 ID 摘要分开。历史位于所选数据目录的 `history.json`，迁移数据目录时一并复制、校验。
+在「关于软件」检查更新、查看更新说明并下载运行包。SHA-256 与版本校验通过后，确认即可重启安装；原配置、密钥和历史保留，可从同页回退上一版。
 
-维护者发布新版本时，使用递增的 `v主版本.次版本.修订号`（如 `v2.2.0`），附上运行包并将正式 Release 标记为 **Latest**。草稿、预发布和仅推送的 Git 标签不会触发提醒。
+程序启动时及成功检查后每 6 小时自动检查正式 Release。网络异常或 GitHub 限流时，用量监控继续运行，也可使用手动发布页入口。v3.1.0 及更早版本首次升级需要手动安装。
 
-## 数据范围与隐私
+[查看发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [更新日志](CHANGELOG.md)
 
-- 更新检测仅访问本项目的公开 GitHub Release 接口，不发送本机配置、API Key 或账户用量；GitHub 会收到常规网络请求信息（如 IP 和应用版本）。
-- GPT 显示 **Codex / ChatGPT Work 订阅额度**，不涵盖 ChatGPT 普通聊天的所有模型消息额度。
-- DeepSeek 使用官方余额接口，**不是全账户 Token 历史统计**。点击窗口内“官方用量”可查看后台明细。
-- OpenAI 使用官方组织 `usage/completions` 接口，并按你提供的 API Key ID 过滤。普通 API Key 用 `GET /v1/models` 验证登录；受限 Key 需允许读取该接口。普通 Key 本身不能读取组织历史用量，需补充 **Admin API Key 与 API Key ID**，未配置时显示待配置状态。
-- OpenAI 统计涵盖官方 completions 用量接口覆盖的模型请求，**不是全部 API 端点的总用量**，不查询余额、剩余 Token 或 ChatGPT 订阅额度。缓存输入已包含在输入 Token 中，不重复相加。
-- 程序通过本机官方 Codex 查询 GPT 额度，应用自身不读取或复制 OpenAI 登录令牌。
-- DeepSeek API Key 及 OpenAI API/Admin Key 使用 Windows DPAPI 按当前用户加密保存，仅用于对应官方接口。
-- 缺失字段不会被当作零，到达重置时间后等待官方返回新额度；查询不会发起模型对话。
+### 数据留在本机
 
-详细说明见 [使用指南](docs/USER_GUIDE.zh-CN.md) 和 [凭据处理说明](SECURITY.md)。
+正常运行和保存密钥不需要管理员权限。默认数据目录为 `%LOCALAPPDATA%\TokenMonitor`；在「数据目录」中选择可写空文件夹，可复制并校验配置、密钥与历史，原目录保留备份。
 
-## 从源码构建
+- DeepSeek 与 OpenAI 密钥使用 Windows DPAPI 按当前用户加密保存。
+- Harness 登录凭据按需读取，只发送给对应的官方 DeepSeek 服务。
+- 读取额度和用量不会发起模型对话；官方额度重置操作须单独确认。
+- 更新检查不发送本机配置、密钥或账户用量。
+
+完整数据范围与安全说明见 [SECURITY.md](SECURITY.md)。当前界面为中文，统计可能存在服务端延迟；暂无开机自启设置，发布程序尚未代码签名。
+
+## 开发与贡献
+
+欢迎 [提交问题或功能建议](https://github.com/Ricki0613/TokenMonitor/issues/new/choose)，或通过 Pull Request 改进工具。请勿在截图、日志或提交中包含真实凭据与账户数据。参与方式见 [贡献指南](CONTRIBUTING.md)。
+
+<details>
+<summary>从源码构建与验证</summary>
 
 ```powershell
 git clone https://github.com/Ricki0613/TokenMonitor.git
@@ -89,37 +106,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 ```
 
-输出位于 `build\`。脚本使用 .NET Framework C# 编译器；离线自测与界面检查使用模拟数据，覆盖密钥保存、旧配置迁移、数据目录切换、OpenAI 用量解析、更新检测与异常状态。无需真实账户或 API Key，不发送模型推理请求，不消耗重置次数。界面截图输出到 `build\ui-test-*\`。
-
-发布包使用 `scripts/package.ps1` 生成；`scripts/test-package.ps1 -Archive <ZIP路径>` 执行 6 项安装检查，包括自选中文/空格路径、快捷方式、原地覆盖升级和损坏文件拦截。
+输出位于 `build/`。构建使用 .NET Framework C# 编译器；离线测试使用模拟数据，不需要真实账户或 API Key。运行 `scripts/package.ps1` 生成发布包，使用 `scripts/test-package.ps1 -Archive <ZIP路径>` 验证安装。
 
 | 目录 | 内容 |
 | --- | --- |
 | `src/` | C# / WPF 源码 |
-| `assets/` | 程序图标 |
-| `scripts/` | 构建、自测与图标生成脚本 |
-| `installer/` | 普通用户安装助手与快捷方式创建 |
-| `docs/` | 通用使用指南与发布说明 |
-| `.github/` | Issue / Pull Request 模板 |
+| `assets/` | 图标与产品展示图 |
+| `scripts/` | 构建、测试、打包与展示图生成 |
+| `installer/` | 安装助手 |
+| `docs/` | 使用指南与发布说明 |
 
-用户目录中的配置、密钥、旧版 `data/` 与构建产物不纳入版本控制。
+展示图由 `scripts/render-readme.ps1` 从原生 WPF 控件以双倍分辨率生成，使用模拟数据。维护者应发布带运行包的正式 Release 并标记为 Latest；仅推送 Git 标签不会触发应用更新提醒。
 
-## 参与贡献
-
-欢迎 [提交问题或功能建议](https://github.com/Ricki0613/TokenMonitor/issues/new/choose)，也欢迎通过 Pull Request 改进工具。请写清楚复现步骤或使用场景，功能改动请运行构建、自测并检查界面。详见 [贡献指南](CONTRIBUTING.md)。
-
-## 当前限制
-
-- 当前界面为中文，重置时间使用北京时间（UTC+8）。
-- 数据定时查询，可能存在服务端更新延迟；接口变化时可能需要适配。
-- 暂无开机自启设置和自动下载安装；更新检测需 v2.1.0 及以后版本；发布的程序尚未代码签名。
+</details>
 
 ## 许可证
 
 [MIT License](LICENSE) · Copyright (c) 2026 Ricki0613
 
 本项目为独立开源工具，与 OpenAI、DeepSeek 无官方隶属关系。
-
-## DeepSeek Harness 余额
-
-在同一 Windows 用户下先登录 DeepSeek Harness，再选择“设置 → DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户”并保存。无需保持 Harness 运行。按币种显示充值钱包、赠送钱包及合计；不推断 API 可调用状态。凭据只从 `%USERPROFILE%\.dsh\.credentials.yaml` 按需读取，不复制保存，仅发送到固定的 DeepSeek 官方 Platform 域名。原 API Key 模式可随时切回。已验证 Harness 0.2.1-rc.2；自定义数据目录与非官方服务器暂不支持。
