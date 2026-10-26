@@ -64,7 +64,7 @@ namespace TokenMonitor {
         public Shell(string title,string sub,string accent,double width,double height,bool floating,bool formal=false) {
             this.formal=formal;
             Title=title=="Token Monitor"?title:title+" · Token Monitor";Width=width;Height=height;Topmost=floating;ShowInTaskbar=!floating;
-            WindowStyle=formal?WindowStyle.SingleBorderWindow:WindowStyle.None;ResizeMode=formal||floating?ResizeMode.CanResize:ResizeMode.NoResize;AllowsTransparency=!formal;Background=Brushes.Transparent;
+            WindowStyle=WindowStyle.None;ResizeMode=formal?ResizeMode.CanMinimize:floating?ResizeMode.CanResize:ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;
             MinWidth=floating?300:width;MinHeight=floating?210:100;
             FontFamily=new FontFamily("Segoe UI, Microsoft YaHei UI");
             UseLayoutRounding=true;SnapsToDevicePixels=true;
@@ -73,15 +73,16 @@ namespace TokenMonitor {
             Surface=new Border { BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(18),Margin=new Thickness(12),
                 Effect=new DropShadowEffect { BlurRadius=18,ShadowDepth=3,Opacity=0.12,Color=Colors.Black } };
             Appearance.Paint(Surface,Border.BackgroundProperty,"#F5F7F8");Appearance.Paint(Surface,Border.BorderBrushProperty,"#E2E6E8");
-            if(formal) {Surface.Margin=new Thickness(0);Surface.CornerRadius=new CornerRadius(0);Surface.Effect=null;MinWidth=760;MinHeight=560;AutoHeight=false;}
+            if(formal) {Surface.Margin=new Thickness(0);Surface.CornerRadius=new CornerRadius(14);Surface.Effect=null;MinWidth=760;MinHeight=560;AutoHeight=false;}
             var root=new Grid();root.Children.Add(Surface);Content=root;
             var layout=new DockPanel { LastChildFill=true };ContentPanel=layout;Surface.Child=layout;
             SourceInitialized+=(s,e)=>Appearance.ApplyTitleBar(this);
             titleArea=new Border { Padding=new Thickness(19,17,14,14),Background=Brushes.Transparent,Cursor=Cursors.SizeAll };
             titleArea.MouseLeftButtonDown+=(s,e)=> { if(e.ChangedButton==MouseButton.Left && !e.Handled) { try {DragMove();} catch {} } };
             var mark=new Border { Background=UI.Brush(accent),Width=7,Height=7,CornerRadius=new CornerRadius(4),Margin=new Thickness(0,0,8,0),VerticalAlignment=VerticalAlignment.Center };
-            var heading=new StackPanel {Orientation=Orientation.Horizontal};heading.Children.Add(mark);heading.Children.Add(UI.Text(title,14,UI.Ink,true));
-            var words=new StackPanel();words.Children.Add(heading);Subtitle=UI.Text(sub,10.5,UI.Muted);Subtitle.Margin=new Thickness(15,4,0,0);words.Children.Add(Subtitle);
+            FrameworkElement brand=formal?Brand.Mark(28):mark;brand.Margin=new Thickness(0,0,8,0);brand.VerticalAlignment=VerticalAlignment.Center;if(formal)AutomationProperties.SetName(brand,"Token Monitor 标志");
+            var heading=new StackPanel {Orientation=Orientation.Horizontal};heading.Children.Add(brand);heading.Children.Add(UI.Text(title,14,UI.Ink,true));
+            var words=new StackPanel();words.Children.Add(heading);Subtitle=UI.Text(sub,10.5,UI.Muted);Subtitle.Margin=new Thickness(formal?36:15,4,0,0);words.Children.Add(Subtitle);
             var close=UI.Button("×",()=>{if(CloseAction!=null)CloseAction();else Close();},floating?"隐藏此悬浮窗":"收起到托盘");
             close.FontSize=20;close.Padding=new Thickness(8,0,8,2);close.Background=Brushes.Transparent;close.VerticalAlignment=VerticalAlignment.Top;close.Cursor=Cursors.Hand;
             AutomationProperties.SetName(close,floating?"隐藏"+title:"收起控制面板");
@@ -90,7 +91,11 @@ namespace TokenMonitor {
                 var fit=UI.Button("↕",()=>FitToContent(),"贴合内容高度");fit.Padding=new Thickness(7,3,7,3);fit.FontSize=16;fit.Background=Brushes.Transparent;
                 AutomationProperties.SetName(fit,"贴合内容高度");titleButtons.Children.Add(fit);
             }
-            if(!formal)titleButtons.Children.Add(close);
+            if(formal) {
+                var minimize=UI.Button("−",()=>WindowState=WindowState.Minimized,"最小化");minimize.FontSize=20;minimize.Width=38;minimize.Height=34;minimize.Padding=new Thickness(0);minimize.Background=Brushes.Transparent;AutomationProperties.SetName(minimize,"最小化");titleButtons.Children.Add(minimize);
+                close.Width=38;close.Height=34;close.Padding=new Thickness(0);close.ToolTip="关闭窗口，继续在托盘运行";AutomationProperties.SetName(close,"关闭窗口");
+            }
+            titleButtons.Children.Add(close);
             titleArea.Child=UI.Row(words,titleButtons);DockPanel.SetDock(titleArea,Dock.Top);layout.Children.Add(titleArea);
             Scroll=new ScrollViewer { VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,Padding=new Thickness(18,0,18,16),Content=Body };
             layout.Children.Add(Scroll);
@@ -187,7 +192,7 @@ namespace TokenMonitor {
         readonly CardPanel services;
         readonly DashboardCard gptCard,deepCard,openCard;
         public SettingsView SettingsPage {get;private set;}
-        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.2.0",UI.Green,1180,760,false,true) {
+        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.2.1",UI.Green,1180,760,false,true) {
             this.app=app;
             ResizeMode=ResizeMode.CanMinimize;Width=Math.Min(1180,SystemParameters.WorkArea.Width);Height=Math.Min(760,SystemParameters.WorkArea.Height);MinWidth=Math.Min(760,Width);MinHeight=Math.Min(560,Height);
             ContentPanel.Children.Remove(Scroll);
@@ -221,9 +226,7 @@ namespace TokenMonitor {
             Interval.SelectionChanged+=(s,e)=>{app.Prefs.Interval=new[]{15,30,60,120}[Interval.SelectedIndex];app.Save();app.UpdateLabels();};
             var auto=new StackPanel {Orientation=Orientation.Horizontal};var autoLabel=UI.Text("自动刷新",12,UI.Muted);autoLabel.VerticalAlignment=VerticalAlignment.Center;autoLabel.Margin=new Thickness(0,0,12,0);auto.Children.Add(autoLabel);auto.Children.Add(Interval);auto.Margin=new Thickness(2,3,2,16);Body.Children.Add(auto);
             Refresh=UI.Button("立即刷新",async()=>await app.RefreshAll(true));Refresh.SetResourceReference(Button.BackgroundProperty,"ActionBrush");Refresh.SetResourceReference(Button.ForegroundProperty,"ActionInkBrush");
-            var actions=new StackPanel { Orientation=Orientation.Horizontal };
-            actions.Children.Add(Refresh);var settings=UI.Button("设置",()=>OpenSettings("外观设置"));settings.Margin=new Thickness(8,0,0,0);actions.Children.Add(settings);
-            var exit=UI.Button("退出",()=>app.Quit());exit.Margin=new Thickness(8,0,0,0);actions.Children.Add(exit);TitleButtons.Children.Add(actions);
+            Refresh.Margin=new Thickness(16,0,0,0);auto.Children.Add(Refresh);
             var note=UI.Text("悬浮球可拖动 · 双击展开详情 · 右键打开菜单 · 关闭主界面后继续在托盘运行",10.5,UI.Muted);note.Margin=new Thickness(1,13,0,0);Body.Children.Add(note);
             var updatePanel=new StackPanel {Margin=new Thickness(0,14,0,0)};
             UpdateStatus=UI.Text("启动时及每 6 小时自动检查更新",11,UI.Muted);updatePanel.Children.Add(UpdateStatus);
@@ -238,17 +241,17 @@ namespace TokenMonitor {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage==null)SettingsPage=new SettingsView(app,ShowOverview,true);
             workspace.Children.Clear();workspace.Children.Add(SettingsPage);
-            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v3.2.0";
+            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v3.2.1";
         }
         public void HistoryChanged() {if(history!=null&&workspace.Children.Contains(history))history.Render();}
         public void ShowHistory() {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage!=null){SettingsPage.ClearSecrets();SettingsPage=null;}
-            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v3.2.0";
+            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v3.2.1";
         }
         public void ShowOverview() {
             if(SettingsPage!=null){if(SettingsPage.Busy)return;SettingsPage.ClearSecrets();SettingsPage=null;}
-            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("账户概览");Subtitle.Text="用量控制中心  /  v3.2.0";
+            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("账户概览");Subtitle.Text="用量控制中心  /  v3.2.1";
         }
         public void RenderUpdate(AvailableRelease release,string message) {
             UpdateStatus.Text=(release==null?"":"发现新版本 "+release.Tag+"，可下载更新。")+(message==null?"":(release==null?"":"\n")+message)+(release==null||string.IsNullOrWhiteSpace(release.Notes)?"":"\n\n"+release.Notes);
@@ -393,9 +396,6 @@ namespace TokenMonitor {
             AutomationProperties.SetName(orbSize,"ChatGPT 悬浮球大小");
             var orbRow=UI.Row(UI.Text("悬浮球大小",13,UI.Ink,true),orbSize);orbRow.Margin=new Thickness(2,0,2,12);Body.Children.Add(orbRow);
             var orbHint=UI.Text("100% 为 76 个逻辑像素；实际尺寸取决于显示器和 Windows 缩放。上下数值均为剩余额度。",11,UI.Muted);orbHint.Margin=new Thickness(2,0,2,16);Body.Children.Add(orbHint);
-            var refreshInterval=new ComboBox {Width=160,Height=32,ItemsSource=new[]{"15 秒","30 秒","60 秒","120 秒"}};
-            refreshInterval.SetBinding(ComboBox.SelectedIndexProperty,new System.Windows.Data.Binding("SelectedIndex"){Source=app.Main.Interval,Mode=System.Windows.Data.BindingMode.TwoWay});
-            AutomationProperties.SetName(refreshInterval,"设置自动刷新间隔");Body.Children.Add(UI.Row(UI.Text("自动刷新",13,UI.Ink,true),refreshInterval));
             Body=pages["ChatGPT 连接"];
             Body.Children.Add(UI.Text("使用本机 Codex 账号",18,UI.Ink,true));
             var chatHint=UI.Text("1. 在 Codex 中登录你的 ChatGPT 账号。\n2. 点击下方连接，读取 Codex / ChatGPT Work 共用额度。\n3. 返回概览，按需开启浮窗或悬浮球。",13,UI.Muted);chatHint.Margin=new Thickness(0,16,0,20);Body.Children.Add(chatHint);
@@ -511,7 +511,7 @@ namespace TokenMonitor {
                 if(SelectedPage=="DeepSeek 密钥")input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);if(SelectedPage!="OpenAI 密钥")showMessage("已保存"+SelectedPage+"。");if(SelectedPage=="DeepSeek 密钥"){app.ResetDeepCooldown();await app.RefreshDeep(true);}
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
             save.Content="保存密钥设置";saveButton=save;save.HorizontalAlignment=HorizontalAlignment.Left;footer.Children.Add(save);
-            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v3.2.0 · Windows 桌面用量工具",13,UI.Muted));
+            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v3.2.1 · Windows 桌面用量工具",13,UI.Muted));
             var about=UI.Text("ChatGPT 悬浮球展示 Codex 与 ChatGPT Work 共用的额度。独立查看 DeepSeek 余额及 OpenAI API 用量。",13,UI.Muted);about.Margin=new Thickness(0,20,0,24);Body.Children.Add(about);
             var updateInfo=UI.Text("",12,UI.Muted);updateInfo.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Text"){Source=app.Main.UpdateStatus});Body.Children.Add(updateInfo);
             var aboutActions=new WrapPanel {Margin=new Thickness(0,14,0,18)};

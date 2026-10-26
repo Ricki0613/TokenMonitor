@@ -32,7 +32,7 @@ namespace TokenMonitor {
             var disc=new Ellipse {Width=98,Height=98,Fill=UI.Brush("#171D2B"),Stroke=UI.Brush("#414B61"),StrokeThickness=1};Canvas.SetLeft(disc,1);Canvas.SetTop(disc,1);canvas.Children.Add(disc);
             AddArc(canvas,214,112,"#30434B");AddArc(canvas,340,220,"#38354E");
             shortArc=AddArc(canvas,214,112,"#5EEAD4");longArc=AddArc(canvas,340,220,"#A99CFF");
-            ShortText=Label(canvas,16,"5h  —", "#8EF3E1");LongText=Label(canvas,68,"周  —","#C7BEFF");
+            ShortText=Label(canvas,16,"—", "#8EF3E1");LongText=Label(canvas,68,"—","#C7BEFF");
             var mark=Brand.Mark(29);Canvas.SetLeft(mark,35.5);Canvas.SetTop(mark,37);canvas.Children.Add(mark);
             state=Label(canvas,43,"", "#FFBF75");state.FontSize=13;state.Width=18;Canvas.SetLeft(state,74);
             Content=new Viewbox {Child=canvas};ApplyScale();Loaded+=(s,e)=>Clamp();
@@ -73,16 +73,16 @@ namespace TokenMonitor {
             var group=data==null?null:data.Groups.FirstOrDefault(x=>x.Id=="codex");
             var shortWindow=group==null?null:group.Windows.FirstOrDefault(x=>x.Label=="5 小时额度");
             var week=group==null?null:group.Windows.FirstOrDefault(x=>x.Label=="每周额度");
-            Draw(shortArc,ShortText,shortWindow,214,112,"5h");Draw(longArc,LongText,week,340,220,"周");
+            Draw(shortArc,ShortText,shortWindow,214,112);Draw(longArc,LongText,week,340,220);
             state.Text=error!=null?"!":busy?"·":"";
             shortArc.Opacity=longArc.Opacity=error==null?1:0.35;
-            ToolTip="ChatGPT · Codex / Work 共用剩余额度\n"+ShortText.Text+" / "+LongText.Text+(error!=null?"\n更新失败（显示上次数据）："+error:busy?"\n正在刷新…":"")+(data==null?"":"\n上次同步 "+UI.Clock(data.Fetched))+"\n双击展开详情 · 右键菜单";
+            ToolTip="ChatGPT · Codex / Work 共用剩余额度\n"+"5 小时："+ShortText.Text+" / 每周："+LongText.Text+(error!=null?"\n更新失败（显示上次数据）："+error:busy?"\n正在刷新…":"")+(data==null?"":"\n上次同步 "+UI.Clock(data.Fetched))+"\n双击展开详情 · 右键菜单";
             AutomationProperties.SetName(this,ToolTip.ToString());
         }
-        static void Draw(Path arc,TextBlock text,QuotaWindow window,double start,double sweep,string label){
+        static void Draw(Path arc,TextBlock text,QuotaWindow window,double start,double sweep){
             double? remaining=window==null?null:window.Remaining;
             arc.Data=Arc(start,remaining.HasValue?sweep*Math.Max(0,Math.Min(100,remaining.Value))/100:0);
-            text.Text=label+"  "+(remaining.HasValue?remaining.Value.ToString("0")+"%":"—");
+            text.Text=remaining.HasValue?remaining.Value.ToString("0")+"%":"—";
         }
     }
 }

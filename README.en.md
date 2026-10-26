@@ -12,7 +12,7 @@ Manage your accounts in the control center, then keep usage nearby with a compac
 
 The upper arc shows 5-hour remaining quota; the lower arc shows weekly remaining quota. Double-click to expand. Screenshots use simulated data.
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
 
 ## Update checks
 
@@ -41,7 +41,7 @@ A data-first dashboard with two ChatGPT quota bars, prominent DeepSeek balances,
 
 ## Quick start
 
-1. Download [TokenMonitor-v3.2.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) and extract the entire archive.
+1. Download [TokenMonitor-v3.2.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) and extract the entire archive.
 2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
 4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and can be shown explicitly after connecting.

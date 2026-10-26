@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.2.0.0")]
-[assembly: AssemblyFileVersion("3.2.0.0")]
-[assembly: AssemblyInformationalVersion("3.2.0")]
+[assembly: AssemblyVersion("3.2.1.0")]
+[assembly: AssemblyFileVersion("3.2.1.0")]
+[assembly: AssemblyInformationalVersion("3.2.1")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -264,7 +264,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.2.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.2.1";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -311,24 +311,24 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.2.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.2.1");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.1"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
             }
             if(offline) {
-                checks["main_is_standard_window"]=Main.WindowStyle==WindowStyle.SingleBorderWindow&&!Main.Topmost&&Main.ShowInTaskbar;
+                checks["main_has_custom_chrome"]=Main.WindowStyle==WindowStyle.None&&Main.ResizeMode==ResizeMode.CanMinimize&&!Main.Topmost&&Main.ShowInTaskbar;
                 SetOrbMode(true);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
                 checks["orb_replaces_details"]=Orb.IsVisible&&!Gpt.IsVisible&&Prefs.Gpt;
-                checks["orb_shows_remaining"]=Orb.ShortText.Text.Contains("72%")&&Orb.LongText.Text.Contains("39%");
+                checks["orb_shows_remaining"]=Orb.ShortText.Text=="72%"&&Orb.LongText.Text=="39%";
                 foreach(int scale in OrbView.Scales){Prefs.OrbScale=scale;Orb.ApplyScale();Orb.UpdateLayout();checks["orb_size_"+scale]=Math.Abs(Orb.Width-76.0*scale/100)<1.1;UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-"+scale+".png"));}
                 Orb.Render(null,null,false);checks["orb_unknown_not_zero"]=Orb.ShortText.Text.Contains("—")&&Orb.LongText.Text.Contains("—");
                 var boundary=SampleGpt();boundary.Groups[0].Windows[0].Used=100;boundary.Groups[0].Windows[1].Used=0;
@@ -359,7 +359,7 @@ namespace TokenMonitor {
                     UI.SaveImage(Deep,Path.Combine(smokeFolder,"deepseek-"+theme+".png"));
                     OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-"+theme+".png"));
                     Prefs.Appearance=theme;Main.OpenSettings("外观设置");Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+".png"));
-                    checks[theme+"_native_titlebar_matches"]=Appearance.TitleBarMatches(Main);
+                    checks[theme+"_custom_chrome"]=Main.WindowStyle==WindowStyle.None&&Main.Surface.CornerRadius.TopLeft==14;
                     foreach(string page in new[]{"DeepSeek 密钥","OpenAI 密钥","数据目录","关于软件"}) {Main.SettingsPage.SelectPage(page);Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+"-"+page+".png"));}
                     Main.ShowOverview();
                     SetOrbMode(true);Orb.ContextMenu.PlacementTarget=Orb;Orb.ContextMenu.IsOpen=true;await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);

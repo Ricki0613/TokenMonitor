@@ -14,7 +14,8 @@ namespace TokenMonitor {
             var api=nodes.OfType<PasswordBox>().First(x=>AutomationProperties.GetName(x)=="新的 OpenAI API Key");
             var appearance=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="外观主题");
             var scale=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="ChatGPT 悬浮球大小");
-            var interval=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="设置自动刷新间隔");
+            var interval=app.Main.Interval;
+            checks["appearance_excludes_refresh_interval"]=!nodes.OfType<TextBlock>().Any(x=>x.Text=="自动刷新");
             var save=nodes.OfType<Button>().First(x=>Equals(x.Content,"保存密钥设置"));
             var before=File.ReadAllBytes(Paths.OpenAiKey);
             api.Password="sk-test-only-unsubmitted-change";

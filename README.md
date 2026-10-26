@@ -4,7 +4,7 @@
 
 **Windows 桌面用量悬浮窗：随时查看 Codex / ChatGPT Work 额度、DeepSeek API 余额与 OpenAI API Token 用量。**
 
-概览直接展示三种服务用量；常驻左栏切换历史趋势与设置，支持 7／30 天图表、小／中／大字号，以及应用内下载、校验、重启更新与回退。
+一体化圆角主窗口使用内部 logo 与最小化／关闭按钮，悬浮球仅显示百分比。概览直接展示三种服务用量；常驻左栏切换历史趋势与设置，支持 7／30 天图表、小／中／大字号，以及应用内下载、校验、重启更新与回退。
 
 ![Token Monitor 控制中心](assets/overview.png)
 
@@ -12,10 +12,10 @@
 
 ChatGPT 悬浮球：上方为 5 小时剩余额度，下方为每周剩余额度；双击展开详情。界面展示使用模拟数据。
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) · [发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) · [发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-3.2.0-10A37F)
+![Version](https://img.shields.io/badge/version-3.2.1-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 一眼看清三种用量
@@ -37,7 +37,7 @@ ChatGPT 详情浮窗支持 **重置额度**：显示官方剩余次数，确认�
 
 ## 下载、安装与首次使用
 
-1. **下载运行包**：[TokenMonitor-v3.2.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip)，右键 → **全部解压**。
+1. **下载运行包**：[TokenMonitor-v3.2.1-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip)，右键 → **全部解压**。
 2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或分别填写程序位置和数据目录。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
 3. **连接账户**：DeepSeek 在“设置 → DeepSeek 密钥 → DeepSeek 余额来源”选择已登录的 Harness 账户，或填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。OpenAI 在“设置”中使用普通 API Key 登录，读取历史用量还需组织 Admin API Key 和对应的 API Key ID。只开启需要的服务即可。
 4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。

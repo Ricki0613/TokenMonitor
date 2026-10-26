@@ -12,6 +12,11 @@ namespace TokenMonitor {
         public static async Task Run(MonitorApp app,IDictionary<string,object> checks,string folder) {
             var main=app.Main;
             main.ShowOverview();app.UpdateLabels();main.UpdateLayout();
+            var minimize=SettingsUiTests.Walk(main).OfType<Button>().First(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="最小化");
+            var close=SettingsUiTests.Walk(main).OfType<Button>().First(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="关闭窗口");
+            minimize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));checks["custom_minimize_works"]=main.WindowState==WindowState.Minimized;main.WindowState=WindowState.Normal;
+            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));checks["custom_close_hides_to_tray"]=!main.IsVisible;main.Show();main.UpdateLayout();
+            checks["header_uses_brand_logo"]=SettingsUiTests.Walk(main).OfType<Viewbox>().Any(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="Token Monitor 标志");
             var text=SettingsUiTests.Walk(main).OfType<TextBlock>().Select(x=>x.Text).ToList();
             checks["dashboard_two_remaining_percentages"]=text.Contains("72%")&&text.Contains("39%");
             checks["dashboard_today_and_month"]=text.Contains("150,200")&&text.Contains("5,098,940");
