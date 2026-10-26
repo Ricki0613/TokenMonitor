@@ -11,8 +11,11 @@
 <p align="center">
   <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
   <a href="#快速开始">快速开始</a> ·
-  <a href="docs/USER_GUIDE.zh-CN.md">使用指南</a> ·
-  <a href="README.en.md">English</a>
+  <a href="docs/USER_GUIDE.zh-CN.md">使用指南</a>
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.ru.md">Русский</a>
 </p>
 
 [![Token Monitor 控制中心与 ChatGPT 悬浮球](assets/readme-hero.png)](assets/readme-hero.png)

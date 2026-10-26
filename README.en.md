@@ -11,8 +11,11 @@
 <p align="center">
   <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>Download for Windows</strong></a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="docs/USER_GUIDE.zh-CN.md">User guide (Chinese)</a> ·
-  <a href="README.md">中文</a>
+  <a href="docs/USER_GUIDE.zh-CN.md">User guide (Chinese)</a>
+</p>
+
+<p align="center">
+  <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.ru.md">Русский</a>
 </p>
 
 [![Token Monitor dashboard and ChatGPT quota orb](assets/readme-hero.png)](assets/readme-hero.png)
