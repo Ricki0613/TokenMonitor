@@ -20,7 +20,7 @@
 
 [![Token Monitor 控制中心与 ChatGPT 悬浮球](assets/readme-hero.png)](assets/readme-hero.png)
 
-<p align="center"><sub>主界面与桌面悬浮球组合展示 · 模拟数据 · 点击图片查看高清原图</sub></p>
+<p align="center"><sub>主界面与桌面悬浮球组合展示 · 模拟数据</sub></p>
 
 ## 用量就在手边
 
