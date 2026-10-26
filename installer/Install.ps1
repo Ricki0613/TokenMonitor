@@ -12,7 +12,7 @@ try {
     if (-not $framework -or $framework.Release -lt 528040) { throw 'Please install .NET Framework 4.8, then run Install.cmd again. See START_HERE.zh-CN.md.' }
     if (-not $Destination) { $Destination = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Programs\TokenMonitor' }
     if ($Interactive) {
-        Write-Host 'Token Monitor v2.1.0'
+        Write-Host 'Token Monitor v3.2.0'
         Write-Host '安装程序和创建快捷方式。日常运行不需要管理员权限。'
         Write-Host ('默认安装位置：' + $Destination)
         $chosen = Read-Host '按 Enter 使用默认位置，或输入自定义完整路径'
@@ -40,6 +40,18 @@ try {
     if ($running.Count -gt 0) { throw '请先从 Token Monitor 托盘菜单选择“退出”，再重新运行安装助手。' }
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
     $sameFolder = [string]::Equals($PSScriptRoot.TrimEnd('\'),$Destination.TrimEnd('\'),[StringComparison]::OrdinalIgnoreCase)
+    if (-not $sameFolder -and (Test-Path -LiteralPath $targetExe)) {
+        $previous = Join-Path $Destination 'previous-version'
+        $backup = Join-Path $Destination ('backups\before-v3.2.0-' + [Guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $previous,$backup -Force | Out-Null
+        $hashes = @()
+        foreach ($name in @('TokenMonitor.exe','TokenMonitor.exe.config','TokenMonitor.ico')) {
+            Copy-Item -LiteralPath (Join-Path $Destination $name) -Destination $backup
+            Copy-Item -LiteralPath (Join-Path $Destination $name) -Destination $previous -Force
+            $hashes += (Get-FileHash -LiteralPath (Join-Path $previous $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+        [IO.File]::WriteAllText((Join-Path $previous 'hashes.json'),(ConvertTo-Json -InputObject $hashes -Compress),[Text.UTF8Encoding]::new($false))
+    }
     if (-not $sameFolder) {
         foreach ($name in $files) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination (Join-Path $Destination $name) -Force }
     }

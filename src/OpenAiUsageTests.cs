@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -23,6 +23,7 @@ namespace TokenMonitor {
                 Assert(snapshot.Month.InputTokens==400&&snapshot.Month.OutputTokens==90&&snapshot.Month.TotalTokens==490);
                 Assert(snapshot.Month.CachedInputTokens==150&&snapshot.Month.Requests==5);
                 Assert(snapshot.Today.TotalTokens==370&&snapshot.Today.CachedInputTokens==100&&snapshot.Today.Requests==3);
+                Assert(snapshot.Daily["2026-10-09"].TotalTokens==120&&snapshot.Daily["2026-10-10"].TotalTokens==370);
             });
             check("OpenAI Beijing day and month boundaries are independent of PC timezone",()=>{
                 var at=new DateTimeOffset(2026,10,1,0,30,0,TimeSpan.FromHours(8));

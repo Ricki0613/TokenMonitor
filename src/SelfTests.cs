@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -65,6 +65,7 @@ namespace TokenMonitor {
             });
             OpenAiUsageTests.Run(check);
             UpdateTests.Run(check);
+            HistoryUpdateTests.Run(check);
             DeepSeekHarnessTests.Run(check);
             var saved=Paths.Root;var temp=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(report)),"test-data-"+Guid.NewGuid().ToString("N"));
             var savedData=Paths.TestDataDirectory;

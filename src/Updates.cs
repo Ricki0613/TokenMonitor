@@ -10,7 +10,8 @@ using System.Windows.Threading;
 namespace TokenMonitor {
     public sealed class AvailableRelease {
         public Version Version;
-        public string Tag;
+        public string Tag,Notes,AssetHash;
+        public string AssetUrl {get{return UpdateClient.ReleasesUrl+"/download/"+Tag+"/TokenMonitor-v"+Version.ToString(3)+"-windows-x64.zip";}}
         public string Url { get { return UpdateClient.ReleasesUrl+"/tag/"+Tag; } }
     }
     public sealed class UpdateClient : IDisposable {
@@ -33,7 +34,11 @@ namespace TokenMonitor {
             if(tag==null||!Regex.IsMatch(tag,@"\Av?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\z")||
                 !Version.TryParse(tag.TrimStart('v')+".0",out version))throw new InvalidDataException();
             // Construct the URL ourselves; never open a URL supplied by a remote response.
-            return new AvailableRelease {Tag=tag,Version=version};
+            var release=new AvailableRelease {Tag=tag,Version=version,Notes=Json.Str(obj,"body")};
+            if(release.Notes!=null&&release.Notes.Length>5000)release.Notes=release.Notes.Substring(0,5000);
+            var assets=Json.Get(obj,"assets") as System.Collections.IEnumerable;
+            if(assets!=null)foreach(var raw in assets){var asset=Json.Object(raw);if(Json.Str(asset,"name")=="TokenMonitor-v"+version.ToString(3)+"-windows-x64.zip") {string digest=Json.Str(asset,"digest");if(digest!=null&&Regex.IsMatch(digest,@"\Asha256:[0-9a-fA-F]{64}\z"))release.AssetHash=digest.Substring(7);}}
+            return release;
         }
         public async Task<AvailableRelease> Fetch() {
             using(var response=await http.GetAsync(Endpoint).ConfigureAwait(false)) {

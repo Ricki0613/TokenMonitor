@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.1.0.0")]
-[assembly: AssemblyFileVersion("3.1.0.0")]
-[assembly: AssemblyInformationalVersion("3.1.0")]
+[assembly: AssemblyVersion("3.2.0.0")]
+[assembly: AssemblyFileVersion("3.2.0.0")]
+[assembly: AssemblyInformationalVersion("3.2.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -63,6 +63,7 @@ namespace TokenMonitor {
             Prefs.MonitorGpt=MonitoringGpt;Prefs.MonitorDeep=MonitoringDeep;Prefs.MonitorOpenAi=MonitoringOpenAi;
             if(offline){Prefs.OpenAi=true;Prefs.MonitorOpenAi=true;}
             Appearance.Apply(Prefs.Appearance);
+            FontSizing.Apply(Prefs.FontSize);
             if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
             if(!smoke&&!string.IsNullOrEmpty(LocalStorage.Notice))Main.Subtitle.Text="本机配置需要处理，请打开设置查看";
@@ -156,7 +157,7 @@ namespace TokenMonitor {
                 await openAi.ValidateApiKey(connection.ApiKey);OpenAiKeyValidated=true;
                 if(!string.IsNullOrEmpty(connection.AdminKey)&&!string.IsNullOrEmpty(connection.ApiKeyId))snapshot=await openAi.Fetch(connection);
                 OpenAiSecretStore.Save(connection);
-                OpenAiData=snapshot;
+                OpenAiData=snapshot;if(snapshot!=null)RecordHistory(snapshot);
                 OpenAiError=snapshot==null?OpenAiConnectionHelp.Next(connection):null;
                 ResetOpenAiCooldown();
                 nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(snapshot==null?300:Prefs.Interval);
@@ -190,7 +191,7 @@ namespace TokenMonitor {
             var now=DateTimeOffset.UtcNow;
             if(quitting||changingStorage||gptBusy||!MonitoringGpt||now<gptCooldown||(!force&&now<nextGpt))return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
-            try {GptData=offline?SampleGpt():await codex.Fetch();GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {GptData=offline?SampleGpt():await codex.Fetch();RecordHistory(GptData);GptError=null;gptFailures=0;gptCooldown=DateTimeOffset.MinValue;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {GptError=ErrorMessage(e,true);gptFailures++;nextGpt=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,gptFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)gptCooldown=nextGpt;}
             finally {gptBusy=false;if(!quitting){Gpt.Render(GptData,GptError,false);UpdateLabels();}}
         }
@@ -225,7 +226,7 @@ namespace TokenMonitor {
             if(quitting||changingStorage||deepBusy||!MonitoringDeep||now<deepCooldown||(!force&&now<nextDeep))return;
             string requestedSource=Prefs.DeepSource;
             deepBusy=true;Deep.UpdateStatus(DeepData,DeepError,true);
-            try {DeepData=offline?SampleDeep():await deep.Fetch(Prefs.DeepSource);DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {DeepData=offline?SampleDeep():await deep.Fetch(Prefs.DeepSource);RecordHistory(DeepData);DeepError=null;deepFailures=0;deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {DeepError=ErrorMessage(e,false);deepFailures++;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,deepFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)deepCooldown=nextDeep;}
             finally {if(requestedSource!=Prefs.DeepSource){DeepData=null;DeepError=null;ResetDeepCooldown();}deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
         }
@@ -243,7 +244,7 @@ namespace TokenMonitor {
             var now=DateTimeOffset.UtcNow;
             if(quitting||changingStorage||openAiBusy||!MonitoringOpenAi||now<openAiCooldown||(!force&&now<nextOpenAi))return;
             openAiBusy=true;OpenAi.UpdateStatus(OpenAiData,OpenAiError,true);
-            try {OpenAiData=offline?SampleOpenAi():await openAi.Fetch(OpenAiSecretStore.Read());OpenAiError=null;openAiFailures=0;openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
+            try {OpenAiData=offline?SampleOpenAi():await openAi.Fetch(OpenAiSecretStore.Read());RecordHistory(OpenAiData);OpenAiError=null;openAiFailures=0;openAiCooldown=DateTimeOffset.MinValue;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);}
             catch(Exception e) {OpenAiError=e is InvalidOperationException?"OpenAI 配置不可用，请在设置中重新登录。":ErrorMessage(e,false);openAiFailures++;nextOpenAi=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,openAiFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)openAiCooldown=nextOpenAi;}
             finally {openAiBusy=false;if(!quitting){OpenAi.Render(OpenAiData,OpenAiError,false);UpdateLabels();}}
         }
@@ -263,7 +264,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.1.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.2.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -310,15 +311,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.1.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.2.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.1.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -416,6 +417,7 @@ namespace TokenMonitor {
         [STAThread]
         public static int Main(string[] args) {
             if(args.Length>0&&args[0]=="--set-data-dir"&&args.Length!=2)return 1;
+            if(args.Length==2&&args[0]=="--apply-update")return UpdateInstaller.Run(args[1]);
             if(args.Length>0&&args[0]=="--self-test") return SelfTests.Run(args.Length>1?args[1]:Path.Combine(Paths.Root,"self-test.json"));
             if(args.Length>0&&args[0]=="--diagnose") return Diagnose(args.Length>1?args[1]:Path.Combine(Paths.Data,"diagnose.json")).GetAwaiter().GetResult();
             if(args.Length>1&&args[0]=="--ui-test") {Paths.TestDataDirectory=Path.Combine(Path.GetFullPath(args[1]),"test-profile");new MonitorApp(args[1],true).Run();return 0;}

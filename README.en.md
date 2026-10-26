@@ -12,15 +12,15 @@ Manage your accounts in the control center, then keep usage nearby with a compac
 
 The upper arc shows 5-hour remaining quota; the lower arc shows weekly remaining quota. Double-click to expand. Screenshots use simulated data.
 
-[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
+[Download for Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) · [Release history](https://github.com/Ricki0613/TokenMonitor/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/Ricki0613/TokenMonitor/issues/new/choose) · [中文](README.md)
 
 ## Update checks
 
-Checks the latest stable GitHub Release at startup and every 6 hours after success. A new version appears in Settings → About with one tray notification per version per run. Check manually from Settings → About or the tray (requests are at least one minute apart). Failures retry after one hour and do not interrupt usage monitoring. The download button opens the project release page; exit the app and install the ZIP manually, preserving your data directory.
+Checks the latest stable GitHub Release at startup and every 6 hours after success. A new version appears in Settings → About with one tray notification per version per run. Check manually from Settings → About or the tray (requests are at least one minute apart). Failures retry after one hour and do not interrupt usage monitoring. The download button fetches and verifies the release ZIP, then asks to restart and install. The previous version remains available for rollback.
 
 Maintainers should publish an increasing `vMAJOR.MINOR.PATCH` release with the Windows ZIP and mark it **Latest**. Drafts, prereleases and Git tags without a release do not notify users. Checks send no credentials, settings or account usage to GitHub; GitHub receives ordinary request information such as IP address and app version.
 
-## New in v3.1.0
+## New in v3.2.0
 
 A data-first dashboard with two ChatGPT quota bars, prominent DeepSeek balances, and OpenAI daily/monthly totals. Each card has connection settings and a labeled float switch. First launch starts with no floats. API key verification and historical usage connection are separate steps with actionable status messages. Hidden floats keep monitoring; floating window height is bounded by content to avoid empty space.
 
@@ -41,7 +41,7 @@ A data-first dashboard with two ChatGPT quota bars, prominent DeepSeek balances,
 
 ## Quick start
 
-1. Download [TokenMonitor-v3.1.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip) and extract the entire archive.
+1. Download [TokenMonitor-v3.2.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) and extract the entire archive.
 2. Run `Install.cmd`. Accept the default locations or enter preferred installation and data paths; the helper creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. For GPT usage, install Codex and sign in locally. For DeepSeek, enter your own API Key in settings (设置). For OpenAI, sign in with an ordinary API Key; historical usage also requires an organization Admin API Key and the matching API Key ID.
 4. Enable the windows you want. The OpenAI window starts disabled when upgrading an existing configuration and can be shown explicitly after connecting.
@@ -68,7 +68,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 
 Output: `build/`. Offline self-tests cover credential storage, legacy migration, safe directory switching, OpenAI usage parsing and failure states. UI checks use mock data. These tests require no real accounts or API keys, send no model inference requests and never consume reset credits. UI screenshots are written to `build/ui-test-*/`. Runtime data and credentials are excluded from Git.
 
-The release is unsigned. Automatic startup and automatic download/install are not implemented. Update checks require v2.1.0 or later. Service-side updates or API changes may affect availability.
+The release is unsigned. Automatic startup is not implemented. Updates download on request and require confirmation before restarting. Update checks require v2.1.0 or later. Service-side updates or API changes may affect availability.
 
 ## Contribute
 
@@ -81,3 +81,9 @@ Issues and pull requests are welcome. Include reproduction steps or the use case
 ## DeepSeek Harness account balance
 
 Sign in to Harness under the same Windows user, then select the Harness account in Settings → DeepSeek balance source and save. Harness need not remain running. Reads the default `%USERPROFILE%\.dsh\.credentials.yaml` grant on each refresh; never copies it into Token Monitor storage. Requests go only to the fixed official DeepSeek Platform host, without redirects. Recharge and bonus wallets are summed per currency; API availability is not inferred. Existing configurations retain manual API Key mode. Verified with Harness Desktop 0.2.1-rc.2; custom Harness data roots and unofficial servers are unsupported.
+
+## v3.2.0 history and updates
+
+The fixed-size dashboard has persistent left navigation, top-right actions and three font sizes. Local 7/30-day charts retain 90 days of successful observations. Balance changes are not spending; credits, top-ups and refunds affect them. OpenAI daily totals revise fetched current-month data, separated by key ID. Missing history is not fabricated.
+
+From v3.2.0, About downloads the official release ZIP, checks GitHub SHA-256 and executable version, then asks to restart. Previous binaries remain available for rollback; settings, credentials and history stay in place. Older clients need a manual upgrade first.

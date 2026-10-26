@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -33,6 +33,7 @@ namespace TokenMonitor {
     public sealed class OpenAiSnapshot {
         public DateTimeOffset Fetched, Start, End;
         public string ApiKeyId;
+        public Dictionary<string,OpenAiTokenTotals> Daily=new Dictionary<string,OpenAiTokenTotals>();
         public OpenAiTokenTotals Today=new OpenAiTokenTotals(), Month=new OpenAiTokenTotals();
         public static readonly TimeSpan BeijingOffset=TimeSpan.FromHours(8);
 
@@ -83,6 +84,9 @@ namespace TokenMonitor {
                             Requests=Count(result,"num_model_requests")
                         };
                         if(totals.CachedInputTokens.HasValue&&totals.CachedInputTokens.Value>totals.InputTokens) throw Invalid();
+                        string day=UI.China(DateTimeOffset.FromUnixTimeSeconds(bucketStart)).ToString("yyyy-MM-dd");
+                        if(!snapshot.Daily.ContainsKey(day))snapshot.Daily[day]=new OpenAiTokenTotals();
+                        snapshot.Daily[day].Add(totals);
                         snapshot.Month.Add(totals);
                         if(bucketStart>=today) snapshot.Today.Add(totals);
                     }
@@ -92,6 +96,7 @@ namespace TokenMonitor {
             intervals.Sort((a,b)=>a[0].CompareTo(b[0]));
             for(int i=1;i<intervals.Count;i++)
                 if(intervals[i][0]<intervals[i-1][1]) throw new InvalidDataException("OpenAI 用量时间桶重复或重叠，请稍后重试");
+            for(var day=snapshot.Start;day<=DayStart(at);day=day.AddDays(1)) {string key=UI.China(day).ToString("yyyy-MM-dd");if(!snapshot.Daily.ContainsKey(key))snapshot.Daily[key]=new OpenAiTokenTotals();}
             return snapshot;
         }
 

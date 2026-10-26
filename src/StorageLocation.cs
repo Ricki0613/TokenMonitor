@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -54,6 +54,8 @@ namespace TokenMonitor {
             if(!File.ReadAllBytes(settingsPath).SequenceEqual(settings)||
                 (encrypted!=null&&!File.ReadAllBytes(keyPath).SequenceEqual(encrypted))||
                 (openAiEncrypted!=null&&!File.ReadAllBytes(openAiPath).SequenceEqual(openAiEncrypted)))throw new IOException("数据校验失败");
+            string history=Path.Combine(source,"history.json");
+            if(File.Exists(history)){var bytes=File.ReadAllBytes(history);string target=Path.Combine(destination,"history.json");Atomic.Write(target,bytes);if(!File.ReadAllBytes(target).SequenceEqual(bytes))throw new IOException("历史记录校验失败");}
             (remember??Remember)(destination);
             if(Paths.TestDataDirectory!=null)Paths.TestDataDirectory=destination;else current=destination;
             LoadWarning=null;LocalStorage.Notice=null;

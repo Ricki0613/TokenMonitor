@@ -39,3 +39,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 __pycache__/
+
+# Local historical observations and updater staging.
+history.json
+updates/
+previous-version/

@@ -4,7 +4,7 @@
 
 **Windows 桌面用量悬浮窗：随时查看 Codex / ChatGPT Work 额度、DeepSeek API 余额与 OpenAI API Token 用量。**
 
-概览直接展示 ChatGPT 双周期额度、DeepSeek 余额和 OpenAI 今日 / 本月用量。每张卡片提供连接设置与显示浮窗入口。
+概览直接展示三种服务用量；常驻左栏切换历史趋势与设置，支持 7／30 天图表、小／中／大字号，以及应用内下载、校验、重启更新与回退。
 
 ![Token Monitor 控制中心](assets/overview.png)
 
@@ -12,10 +12,10 @@
 
 ChatGPT 悬浮球：上方为 5 小时剩余额度，下方为每周剩余额度；双击展开详情。界面展示使用模拟数据。
 
-[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip) · [发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
+[下载 Windows 版](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip) · [发布记录](https://github.com/Ricki0613/TokenMonitor/releases) · [安装与排错](docs/START_HERE.zh-CN.md) · [使用指南](docs/USER_GUIDE.zh-CN.md) · [更新记录](CHANGELOG.md) · [English](README.en.md)
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)
-![Version](https://img.shields.io/badge/version-3.1.0-10A37F)
+![Version](https://img.shields.io/badge/version-3.2.0-10A37F)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 一眼看清三种用量
@@ -31,13 +31,13 @@ ChatGPT 可切换为悬浮球，支持五档大小。设置在主窗口内按类
 
 首次使用先从卡片的“连接设置”选择服务；不会自动弹出未配置的浮窗。隐藏浮窗后，已连接服务仍在概览刷新。OpenAI 分别验证普通密钥与历史用量权限，缺少配置时提示下一步。
 
-三个窗口各自有显示开关，可以拖动、缩放、置顶、收起到托盘，并记住位置与尺寸。卡片随宽度重排，字号保持不变；浮窗最大高度随内容变化，避免拉高后留白；默认高度紧贴内容，点击顶部 **↕** 可恢复贴合高度。设置支持 **浅色 / 深色 / 随系统**。默认每 **30 秒**刷新，可选 15 / 30 / 60 / 120 秒，也能随时手动刷新。网络异常时会标记旧数据与最后成功时间。
+三个窗口各自有显示开关，可以拖动、缩放、置顶、收起到托盘，并记住位置与尺寸。主窗口固定尺寸、卡片不拉伸，外观支持小／中／大字号；浮窗卡片随宽度重排；浮窗最大高度随内容变化，避免拉高后留白；默认高度紧贴内容，点击顶部 **↕** 可恢复贴合高度。设置支持 **浅色 / 深色 / 随系统**。默认每 **30 秒**刷新，可选 15 / 30 / 60 / 120 秒，也能随时手动刷新。网络异常时会标记旧数据与最后成功时间。
 
 ChatGPT 详情浮窗支持 **重置额度**：显示官方剩余次数，确认后使用账户的一次重置权益，与 GPT 内使用重置次数相同。结果不确定时可安全重试，避免重复扣次数。
 
 ## 下载、安装与首次使用
 
-1. **下载运行包**：[TokenMonitor-v3.1.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.1.0/TokenMonitor-v3.1.0-windows-x64.zip)，右键 → **全部解压**。
+1. **下载运行包**：[TokenMonitor-v3.2.0-windows-x64.zip](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.0/TokenMonitor-v3.2.0-windows-x64.zip)，右键 → **全部解压**。
 2. **安装**：双击解压后的 **Install.cmd**，按 Enter 使用默认位置，或分别填写程序位置和数据目录。助手创建桌面、开始菜单快捷方式并启动程序。也可直接运行解压后的 `TokenMonitor.exe`。
 3. **连接账户**：DeepSeek 在“设置 → DeepSeek 密钥 → DeepSeek 余额来源”选择已登录的 Harness 账户，或填写自己的 API Key 并保存；GPT 先在本机安装并登录 Codex。OpenAI 在“设置”中使用普通 API Key 登录，读取历史用量还需组织 Admin API Key 和对应的 API Key ID。只开启需要的服务即可。
 4. **日常启动**：使用 **Token Monitor** 快捷方式。关闭控制面板会收起到托盘，双击托盘图标可恢复。
@@ -58,7 +58,11 @@ Release 中的 Windows ZIP 是可直接运行的程序；GitHub 自动生成的 
 
 启动时自动检查 GitHub 最新正式 Release，成功后每 6 小时复查。新版会显示在“设置 → 关于软件”，并通过托盘通知提醒；同一版本在本次运行中只通知一次。“设置 → 关于软件”或托盘菜单可手动 **检查更新**，两次请求至少间隔 1 分钟。
 
-点击 **下载更新 ↗** 打开项目的对应发布页，下载 ZIP，退出旧程序后覆盖升级（保留数据目录），或运行新包的 `Install.cmd` 并选择原安装目录。程序不会自动下载或覆盖安装。断网、超时或 GitHub 限流时显示失败提示，1 小时后重试，用量监控继续运行；也可直接打开发布页。
+点击 **下载更新 ↗** 在应用内下载本项目运行包，核对 GitHub 提供的 SHA-256 和包内版本，确认后退出、备份、替换并重启。上一版保存在程序目录的 `previous-version`，可在「关于软件」回退；数据目录保持原样。备份也保留在 `updates` 中。缺少有效摘要、下载失败或校验失败时不安装，可使用「手动下载 / 发布页」。v3.1.0 及更早版本首次升级仍需手动安装。
+
+## 本地历史趋势
+
+左栏「历史趋势」提供近 7 天 / 30 天图表。ChatGPT 与 DeepSeek 每 15 分钟保留最新成功采样，OpenAI 按北京时间保存已查询的本月每日 tokens，重复查询修正而不累加。保留 90 天，不补造离线数据。DeepSeek 的下降只称为**余额变化**，不当作消费；来源与币种分别显示。ChatGPT / DeepSeek 按本机来源记录，切换账号会影响曲线；OpenAI 按密钥 ID 摘要分开。历史位于所选数据目录的 `history.json`，迁移数据目录时一并复制、校验。
 
 维护者发布新版本时，使用递增的 `v主版本.次版本.修订号`（如 `v2.2.0`），附上运行包并将正式 Release 标记为 **Latest**。草稿、预发布和仅推送的 Git 标签不会触发提醒。
 

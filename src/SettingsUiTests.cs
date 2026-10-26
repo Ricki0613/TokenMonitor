@@ -23,6 +23,7 @@ namespace TokenMonitor {
             checks["appearance_changes_without_save"]=Appearance.Dark&&app.Prefs.Appearance=="dark"&&Preferences.Load().Appearance=="dark";
             checks["orb_size_saves_immediately"]=app.Prefs.OrbScale==150&&Preferences.Load().OrbScale==150&&Math.Abs(app.Orb.Width-114)<1;
             interval.SelectedIndex=2;view.UpdateLayout();checks["interval_applies_immediately"]=app.Prefs.Interval==60&&app.Main.Interval.SelectedIndex==2;interval.SelectedIndex=1;
+            var font=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="界面字号");font.SelectedIndex=2;checks["font_size_persisted"]=Preferences.Load().FontSize=="large";font.SelectedIndex=1;
             checks["appearance_has_no_save_button"]=save.Visibility==Visibility.Collapsed;
             checks["appearance_does_not_commit_pending_key"]=before.SequenceEqual(File.ReadAllBytes(Paths.OpenAiKey));
             view.SelectPage("OpenAI 密钥");checks["navigation_keeps_unsaved_key"]=api.Password=="sk-test-only-unsubmitted-change"&&save.Visibility==Visibility.Visible;

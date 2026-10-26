@@ -104,6 +104,7 @@ namespace TokenMonitor {
         public bool Gpt=true, Deep=true, OpenAi=false;
         public bool? MonitorGpt,MonitorDeep,MonitorOpenAi;
         public int Interval=30;
+        public string FontSize="medium";
         public bool OrbMode=false;
         public int OrbScale=100;
         public double OrbX=-1,OrbY=-1;
@@ -119,6 +120,7 @@ namespace TokenMonitor {
             try { var p=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Paths.Preferences));
                 if(p==null)return new Preferences();
                 if(!OrbView.Scales.Contains(p.OrbScale))p.OrbScale=100;
+                if(!new[]{"small","medium","large"}.Contains(p.FontSize))p.FontSize="medium";
                 if(p.DeepSource!="harness")p.DeepSource="api";
                 p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;
                 if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";
