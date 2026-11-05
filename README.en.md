@@ -5,11 +5,11 @@
 <p align="center"><strong>Your limits, balances and API usage at a glance.</strong><br>A Windows desktop monitor for Codex / ChatGPT Work, DeepSeek and OpenAI API.</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.1-10A37F" alt="Version 3.2.1"></a>
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.2-10A37F" alt="Version 3.2.2"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>Download for Windows</strong></a> ·
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.2/TokenMonitor-v3.2.2-windows-x64.zip"><strong>Download for Windows</strong></a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/USER_GUIDE.zh-CN.md">User guide (Chinese)</a>
 </p>
@@ -26,7 +26,7 @@
 
 See three services in one dashboard while coding or calling models, then keep the figures you need on your desktop.
 
-- **Compact quota orb**: two percentages show remaining 5-hour and weekly quota. Drag to move, double-click for details, and choose from five sizes.
+- **Compact quota orb**: two percentages show remaining 5-hour and weekly quota. Drag to move, double-click for details, and choose from five sizes. Hover to see both reset times to the minute (Beijing time).
 - **Independent floating windows**: show, hide, move and resize each service separately. Connected services keep refreshing when their floats are hidden.
 - **Local history**: 7-day and 30-day charts with 90-day retention. Missing observations remain missing.
 - **Personal appearance**: light, dark or system theme, three font sizes and persistent sidebar navigation.
@@ -46,7 +46,7 @@ ChatGPT data covers the Codex / ChatGPT Work quota pool. OpenAI statistics cover
 
 **Requires Windows 10 / 11 x64 and .NET Framework 4.8.** Python, Node and the .NET SDK are not needed to run the app. The UI is currently Chinese.
 
-1. [Download the Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip) and extract the entire archive. Choose the runtime ZIP rather than GitHub's generated `Source code` archive.
+1. [Download the Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.2/TokenMonitor-v3.2.2-windows-x64.zip) and extract the entire archive. Choose the runtime ZIP rather than GitHub's generated `Source code` archive.
 2. Run **Install.cmd** and choose installation and data directories. The installer creates desktop and Start menu shortcuts. You can also run the extracted `TokenMonitor.exe` directly.
 3. Use each card's **Connection settings** to connect the services you need, then enable their floats or the quota orb.
 

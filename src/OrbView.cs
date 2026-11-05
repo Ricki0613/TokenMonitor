@@ -23,6 +23,8 @@ namespace TokenMonitor {
         readonly Path shortArc,longArc;
         public readonly TextBlock ShortText,LongText;
         readonly TextBlock state;
+        internal readonly TextBlock HoverShort,HoverWeek,HoverHint;
+        readonly ToolTip hoverTip;
         public bool Exiting;
         public OrbView(MonitorApp app) {
             this.app=app;Title="ChatGPT 额度 · Token Monitor";
@@ -36,6 +38,22 @@ namespace TokenMonitor {
             var mark=Brand.Mark(29);Canvas.SetLeft(mark,35.5);Canvas.SetTop(mark,37);canvas.Children.Add(mark);
             state=Label(canvas,43,"", "#FFBF75");state.FontSize=13;state.Width=18;Canvas.SetLeft(state,74);
             Content=new Viewbox {Child=canvas};ApplyScale();Loaded+=(s,e)=>Clamp();
+            var tooltipBody=new StackPanel();
+            var resetRows=new Grid();resetRows.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});resetRows.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
+            var times=new StackPanel();Grid.SetColumn(times,1);resetRows.Children.Add(times);
+            HoverShort=UI.Text("待同步  (5h)",14,UI.Ink);HoverShort.Margin=new Thickness(0,0,0,4);times.Children.Add(HoverShort);
+            HoverWeek=UI.Text("待同步  (week)",14,UI.Ink);times.Children.Add(HoverWeek);
+            tooltipBody.Children.Add(resetRows);
+            HoverHint=UI.Text("双击详情 · 右键菜单",11.5,UI.Muted);HoverHint.Margin=new Thickness(0,10,0,0);tooltipBody.Children.Add(HoverHint);
+            hoverTip=new ToolTip {Content=tooltipBody,Padding=new Thickness(15,12,15,11)};
+            hoverTip.SetResourceReference(Control.BackgroundProperty,"CardBrush");hoverTip.SetResourceReference(Control.BorderBrushProperty,"BorderBrush");
+            var template=new ControlTemplate(typeof(ToolTip));var surface=new FrameworkElementFactory(typeof(Border));
+            surface.SetValue(Border.CornerRadiusProperty,new CornerRadius(10));surface.SetValue(Border.BorderThicknessProperty,new Thickness(1));
+            surface.SetValue(Border.BackgroundProperty,new TemplateBindingExtension(Control.BackgroundProperty));
+            surface.SetValue(Border.BorderBrushProperty,new TemplateBindingExtension(Control.BorderBrushProperty));
+            surface.SetValue(Border.PaddingProperty,new TemplateBindingExtension(Control.PaddingProperty));
+            surface.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));template.VisualTree=surface;hoverTip.Template=template;
+            ToolTip=hoverTip;ToolTipService.SetShowDuration(this,20000);
             var menu=new ContextMenu();
             AddMenu(menu,"展开额度详情",()=>app.SetOrbMode(false));AddMenu(menu,"打开控制中心",app.ShowControl);
             AddMenu(menu,"立即刷新",async()=>await app.RefreshGpt(true));AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();app.Main.OpenSettings("外观设置");});
@@ -76,8 +94,16 @@ namespace TokenMonitor {
             Draw(shortArc,ShortText,shortWindow,214,112);Draw(longArc,LongText,week,340,220);
             state.Text=error!=null?"!":busy?"·":"";
             shortArc.Opacity=longArc.Opacity=error==null?1:0.35;
-            ToolTip="ChatGPT · Codex / Work 共用剩余额度\n"+"5 小时："+ShortText.Text+" / 每周："+LongText.Text+(error!=null?"\n更新失败（显示上次数据）："+error:busy?"\n正在刷新…":"")+(data==null?"":"\n上次同步 "+UI.Clock(data.Fetched))+"\n双击展开详情 · 右键菜单";
-            AutomationProperties.SetName(this,ToolTip.ToString());
+            string shortReset=ResetTime(shortWindow),weekReset=ResetTime(week);
+            HoverShort.Text=shortReset+"  (5h)";HoverWeek.Text=weekReset+"  (week)";
+            bool stale=error!=null&&data!=null;
+            HoverHint.Text="双击详情 · 右键菜单"+(stale?" · 旧数据":"");
+            string accessible="重置："+HoverShort.Text+"\n　　　"+HoverWeek.Text+"\n"+HoverHint.Text+
+                (error!=null?"\n更新失败"+(stale?"（显示上次数据）":"")+"："+error:busy?"\n正在刷新…":"");
+            AutomationProperties.SetName(hoverTip,accessible);AutomationProperties.SetName(this,accessible);
+        }
+        static string ResetTime(QuotaWindow window) {
+            return window!=null&&window.Reset.HasValue?UI.China(window.Reset.Value).ToString("yyyy.MM.dd HH:mm",System.Globalization.CultureInfo.InvariantCulture):"待同步";
         }
         static void Draw(Path arc,TextBlock text,QuotaWindow window,double start,double sweep){
             double? remaining=window==null?null:window.Remaining;

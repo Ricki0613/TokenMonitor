@@ -192,7 +192,7 @@ namespace TokenMonitor {
         readonly CardPanel services;
         readonly DashboardCard gptCard,deepCard,openCard;
         public SettingsView SettingsPage {get;private set;}
-        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.2.1",UI.Green,1180,760,false,true) {
+        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v3.2.2",UI.Green,1180,760,false,true) {
             this.app=app;
             ResizeMode=ResizeMode.CanMinimize;Width=Math.Min(1180,SystemParameters.WorkArea.Width);Height=Math.Min(760,SystemParameters.WorkArea.Height);MinWidth=Math.Min(760,Width);MinHeight=Math.Min(560,Height);
             ContentPanel.Children.Remove(Scroll);
@@ -241,17 +241,17 @@ namespace TokenMonitor {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage==null)SettingsPage=new SettingsView(app,ShowOverview,true);
             workspace.Children.Clear();workspace.Children.Add(SettingsPage);
-            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v3.2.1";
+            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v3.2.2";
         }
         public void HistoryChanged() {if(history!=null&&workspace.Children.Contains(history))history.Render();}
         public void ShowHistory() {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage!=null){SettingsPage.ClearSecrets();SettingsPage=null;}
-            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v3.2.1";
+            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v3.2.2";
         }
         public void ShowOverview() {
             if(SettingsPage!=null){if(SettingsPage.Busy)return;SettingsPage.ClearSecrets();SettingsPage=null;}
-            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("账户概览");Subtitle.Text="用量控制中心  /  v3.2.1";
+            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("账户概览");Subtitle.Text="用量控制中心  /  v3.2.2";
         }
         public void RenderUpdate(AvailableRelease release,string message) {
             UpdateStatus.Text=(release==null?"":"发现新版本 "+release.Tag+"，可下载更新。")+(message==null?"":(release==null?"":"\n")+message)+(release==null||string.IsNullOrWhiteSpace(release.Notes)?"":"\n\n"+release.Notes);
@@ -511,7 +511,7 @@ namespace TokenMonitor {
                 if(SelectedPage=="DeepSeek 密钥")input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);if(SelectedPage!="OpenAI 密钥")showMessage("已保存"+SelectedPage+"。");if(SelectedPage=="DeepSeek 密钥"){app.ResetDeepCooldown();await app.RefreshDeep(true);}
             });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
             save.Content="保存密钥设置";saveButton=save;save.HorizontalAlignment=HorizontalAlignment.Left;footer.Children.Add(save);
-            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v3.2.1 · Windows 桌面用量工具",13,UI.Muted));
+            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v3.2.2 · Windows 桌面用量工具",13,UI.Muted));
             var about=UI.Text("ChatGPT 悬浮球展示 Codex 与 ChatGPT Work 共用的额度。独立查看 DeepSeek 余额及 OpenAI API 用量。",13,UI.Muted);about.Margin=new Thickness(0,20,0,24);Body.Children.Add(about);
             var updateInfo=UI.Text("",12,UI.Muted);updateInfo.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Text"){Source=app.Main.UpdateStatus});Body.Children.Add(updateInfo);
             var aboutActions=new WrapPanel {Margin=new Thickness(0,14,0,18)};

@@ -5,11 +5,11 @@
 <p align="center"><strong>额度、余额、API 用量，一眼可见。</strong><br>为 Windows 桌面打造的用量监控工具，支持 Codex / ChatGPT Work、DeepSeek 与 OpenAI API。</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.1-10A37F" alt="Version 3.2.1"></a>
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-3.2.2-10A37F" alt="Version 3.2.2"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.2/TokenMonitor-v3.2.2-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="docs/USER_GUIDE.zh-CN.md">使用指南</a>
 </p>
@@ -26,7 +26,7 @@
 
 写代码、调用模型时，不必来回打开用量页面。Token Monitor 在一个概览中汇集三种服务，也能把你关心的数据留在桌面上。
 
-- **轻巧悬浮球**：两行百分比分别显示 5 小时和每周剩余额度；可拖动，双击展开详情，支持五档大小。
+- **轻巧悬浮球**：两行百分比分别显示 5 小时和每周剩余额度；可拖动，双击展开详情，支持五档大小；鼠标悬停可查看两项额度的重置时间（北京时间，精确到分钟）。
 - **独立浮窗**：ChatGPT、DeepSeek、OpenAI 各自开关，支持拖动与调整尺寸。隐藏浮窗后，已连接服务继续刷新。
 - **本地历史趋势**：查看近 7 天／30 天变化，保留 90 天记录；缺失数据不补造。
 - **按习惯显示**：浅色、深色、随系统主题，小／中／大字号，常驻左侧导航。
@@ -46,7 +46,7 @@ ChatGPT 数据不涵盖普通聊天中所有模型的消息限额。OpenAI 统�
 
 **运行环境：Windows 10 / 11 x64、.NET Framework 4.8。** 运行时无需 Python、Node 或 .NET SDK。
 
-1. [下载 Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.1/TokenMonitor-v3.2.1-windows-x64.zip)，右键选择 **全部解压**。请下载运行包，而非 GitHub 自动生成的 `Source code`。
+1. [下载 Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v3.2.2/TokenMonitor-v3.2.2-windows-x64.zip)，右键选择 **全部解压**。请下载运行包，而非 GitHub 自动生成的 `Source code`。
 2. 运行 **Install.cmd**，选择程序与数据目录；安装助手会创建桌面和开始菜单快捷方式。也可直接运行解压后的 `TokenMonitor.exe`。
 3. 从卡片的 **连接设置** 接入需要的服务，再按需打开浮窗或悬浮球。
 

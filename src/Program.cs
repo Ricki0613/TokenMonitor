@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.2.1.0")]
-[assembly: AssemblyFileVersion("3.2.1.0")]
-[assembly: AssemblyInformationalVersion("3.2.1")]
+[assembly: AssemblyVersion("3.2.2.0")]
+[assembly: AssemblyFileVersion("3.2.2.0")]
+[assembly: AssemblyInformationalVersion("3.2.2")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -264,7 +264,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.2.1";
+                Main.Subtitle.Text="用量，随时可见  ·  v3.2.2";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -311,15 +311,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.2.1");
+                Main.RenderUpdate(null,"当前已是最新版本 v3.2.2");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.1"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.2"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.2")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.2")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -330,13 +330,23 @@ namespace TokenMonitor {
                 checks["orb_replaces_details"]=Orb.IsVisible&&!Gpt.IsVisible&&Prefs.Gpt;
                 checks["orb_shows_remaining"]=Orb.ShortText.Text=="72%"&&Orb.LongText.Text=="39%";
                 foreach(int scale in OrbView.Scales){Prefs.OrbScale=scale;Orb.ApplyScale();Orb.UpdateLayout();checks["orb_size_"+scale]=Math.Abs(Orb.Width-76.0*scale/100)<1.1;UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-"+scale+".png"));}
+                var hover=SampleGpt();
+                hover.Groups[0].Windows[0].Reset=new DateTimeOffset(2026,12,31,16,5,59,TimeSpan.Zero);
+                hover.Groups[0].Windows[1].Reset=new DateTimeOffset(2027,1,6,7,9,0,TimeSpan.FromHours(-5));
+                Orb.Render(hover,null,false);
+                var hoverText=System.Windows.Automation.AutomationProperties.GetName(Orb);
+                checks["orb_tooltip_both_reset_times_beijing"]=Orb.HoverShort.Text=="2027.01.01 00:05  (5h)"&&Orb.HoverWeek.Text=="2027.01.06 20:09  (week)";
+                checks["orb_tooltip_layout_and_accessibility"]=Orb.ToolTip is System.Windows.Controls.ToolTip&&Orb.HoverHint.Text=="双击详情 · 右键菜单"&&Orb.HoverHint.FontSize<Orb.HoverShort.FontSize&&hoverText.Contains(Orb.HoverShort.Text)&&hoverText.Contains(Orb.HoverWeek.Text);
+                hover.Groups[0].Windows[1].Reset=null;Orb.Render(hover,"模拟断网",false);
+                checks["orb_tooltip_missing_reset_and_stale"]=Orb.HoverWeek.Text=="待同步  (week)"&&Orb.HoverHint.Text.Contains("旧数据")&&Orb.HoverShort.Text.Contains("2027.01.01 00:05");
+                Orb.Render(null,"模拟首次失败",false);checks["orb_error_without_old_data"]=!Orb.HoverHint.Text.Contains("旧数据")&&Orb.HoverShort.Text.Contains("待同步");
                 Orb.Render(null,null,false);checks["orb_unknown_not_zero"]=Orb.ShortText.Text.Contains("—")&&Orb.LongText.Text.Contains("—");
                 var boundary=SampleGpt();boundary.Groups[0].Windows[0].Used=100;boundary.Groups[0].Windows[1].Used=0;
                 Orb.Render(boundary,null,false);checks["orb_zero_and_full"]=Orb.ShortText.Text.Contains("0%")&&Orb.LongText.Text.Contains("100%");
                 boundary.Groups[0].Id="other";Orb.Render(boundary,null,false);checks["orb_does_not_substitute_other_pool"]=Orb.ShortText.Text.Contains("—");
                 Prefs.OrbMode=true;Prefs.OrbScale=150;Prefs.Save();var restored=Preferences.Load();checks["orb_preferences_roundtrip"]=restored.OrbMode&&restored.OrbScale==150;
                 Prefs.OrbScale=17;Prefs.Save();checks["orb_invalid_scale_falls_back"]=Preferences.Load().OrbScale==100;
-                Orb.Render(GptData,"模拟断网",false);checks["orb_marks_stale"]=Orb.ToolTip.ToString().Contains("更新失败");UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-stale.png"));
+                Orb.Render(GptData,"模拟断网",false);checks["orb_marks_stale"]=Orb.HoverHint.Text.Contains("旧数据");UI.SaveImage(Orb,Path.Combine(smokeFolder,"orb-stale.png"));
                 Main.GptSwitch.IsChecked=false;checks["switch_hides_both_codex_views"]=!Orb.IsVisible&&!Gpt.IsVisible;
                 Main.GptSwitch.IsChecked=true;checks["switch_restores_orb_mode"]=Orb.IsVisible&&!Gpt.IsVisible;
                 Prefs.OrbScale=100;Orb.ApplyScale();SetOrbMode(false);checks["details_restore"]=Gpt.IsVisible&&!Orb.IsVisible;
