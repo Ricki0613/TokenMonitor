@@ -18,7 +18,7 @@
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.es.md">Español</a>
 </p>
 
-[![Token Monitor](assets/readme-hero.png)](assets/readme-hero.png)
+[![Token Monitor en temas oscuro y claro con widgets y ajustes, datos de ejemplo](assets/readme-hero.png)](assets/readme-hero.png)
 
 <p align="center"><sub>Panel y esfera flotante en una sola imagen · Datos de ejemplo · Haz clic para ver la imagen en alta resolución</sub></p>
 

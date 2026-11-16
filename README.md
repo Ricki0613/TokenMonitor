@@ -18,7 +18,7 @@
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.es.md">Español</a>
 </p>
 
-[![Token Monitor 控制中心与 ChatGPT 悬浮球](assets/readme-hero.png)](assets/readme-hero.png)
+[![Token Monitor 深色与浅色主页、浮窗、悬浮球和外观设置预览（模拟数据）](assets/readme-hero.png)](assets/readme-hero.png)
 
 <p align="center"><sub>主界面与桌面悬浮球组合展示 · 模拟数据</sub></p>
 

@@ -18,7 +18,7 @@
   <a href="README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.es.md">Español</a>
 </p>
 
-[![Token Monitor dashboard and ChatGPT quota orb](assets/readme-hero.png)](assets/readme-hero.png)
+[![Token Monitor dark and light dashboards, widgets, quota orb and appearance settings with mock data](assets/readme-hero.png)](assets/readme-hero.png)
 
 <p align="center"><sub>Dashboard and desktop orb shown together · Simulated data · Click for the full-resolution image</sub></p>
 
