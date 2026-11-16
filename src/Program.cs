@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("3.2.2.0")]
-[assembly: AssemblyFileVersion("3.2.2.0")]
-[assembly: AssemblyInformationalVersion("3.2.2")]
+[assembly: AssemblyVersion("4.0.0.0")]
+[assembly: AssemblyFileVersion("4.0.0.0")]
+[assembly: AssemblyInformationalVersion("4.0.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -27,8 +27,9 @@ namespace TokenMonitor {
         public bool MonitoringDeep {get{return Prefs.MonitorDeep??Prefs.Deep;}}
         public bool MonitoringOpenAi {get{return Prefs.MonitorOpenAi??Prefs.OpenAi;}}
         public MainView Main;
-        public UsageView Gpt,Deep;
-        public OpenAiView OpenAi;
+        public CompactView Gpt,Deep,OpenAi,KimiWindow,KimiApiWindow;
+        public OrbView KimiOrb;
+        QuotaWindow lastKimiQuota;
         public OrbView Orb;
         readonly CodexProvider codex=new CodexProvider();
         readonly DeepProvider deep=new DeepProvider();
@@ -67,9 +68,17 @@ namespace TokenMonitor {
             if(!smoke)SystemEvents.UserPreferenceChanged+=SystemAppearanceChanged;
             Main=new MainView(this);MainWindow=Main;
             if(!smoke&&!string.IsNullOrEmpty(LocalStorage.Notice))Main.Subtitle.Text="本机配置需要处理，请打开设置查看";
-            Gpt=new UsageView(this,true);Deep=new UsageView(this,false);
-            OpenAi=new OpenAiView(this);
+            Gpt=new CompactView("ChatGPT",0,()=>RefreshGpt(true),()=>Main.GptSwitch.IsChecked=false);
+            Deep=new CompactView("DeepSeek",1,()=>RefreshDeep(true),()=>Main.DeepSwitch.IsChecked=false);
+            OpenAi=new CompactView("OpenAI API",2,()=>RefreshOpenAi(true),()=>Main.OpenAiSwitch.IsChecked=false);
+            KimiWindow=new CompactView("Kimi 订阅",3,()=>UpdateKUsage(),()=>SetKimiVisible(false,false));
+            KimiApiWindow=new CompactView("Kimi API",4,()=>UpdateKBalance(),()=>SetKimiVisible(false,true));
+            KimiWindow.Width=Prefs.KimiWidth;KimiApiWindow.Width=Prefs.KimiApiWidth;
+            ApplyFloatOpacity(Prefs.FloatOpacity);
             Orb=new OrbView(this);Orb.Place();Orb.LocationChanged+=(s,a)=>QueueSave();
+            KimiOrb=new OrbView(this,true);KimiOrb.Place();KimiOrb.LocationChanged+=(s,a)=>QueueSave();
+            KimiWindow.GeometryChanged+=QueueSave;KimiApiWindow.GeometryChanged+=QueueSave;
+            KimiWindow.LocationChanged+=(s,a)=>QueueSave();KimiApiWindow.LocationChanged+=(s,a)=>QueueSave();
             OpenAi.RestoreSize(Prefs.OpenAiWidth,Prefs.OpenAiHeight,Prefs.OpenAiAutoHeight);
             Gpt.RestoreSize(Prefs.GptWidth,Prefs.GptHeight,Prefs.GptAutoHeight);Deep.RestoreSize(Prefs.DeepWidth,Prefs.DeepHeight,Prefs.DeepAutoHeight);
             Main.FitHeight();Gpt.FitHeight();Deep.FitHeight();OpenAi.FitHeight();
@@ -79,6 +88,10 @@ namespace TokenMonitor {
             bool stack=area.Height>=Gpt.Height+Deep.Height+50;
             Deep.Place(Prefs.DeepX,Prefs.DeepY,Math.Max(area.Left,area.Right-390-(stack?0:370)),stack?area.Top+Gpt.Height+35:area.Top+30);
             OpenAi.Place(Prefs.OpenAiX,Prefs.OpenAiY,Math.Max(area.Left,area.Right-770),area.Top+30);
+            KimiWindow.Place(Prefs.KimiX,Prefs.KimiY,area.Right-250,area.Top+220);
+            KimiApiWindow.Place(Prefs.KimiApiX,Prefs.KimiApiY,area.Right-250,area.Top+340);
+            if(Prefs.KimiFloat){if(Prefs.KimiOrbMode)KimiOrb.Show();else KimiWindow.Show();}
+            if(Prefs.KimiApiFloat)KimiApiWindow.Show();
             Main.Show();if(Prefs.Gpt){if(Prefs.OrbMode)Orb.Show();else Gpt.Show();}if(Prefs.Deep)Deep.Show();if(Prefs.OpenAi)OpenAi.Show();
             saveTimer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(400)};
             saveTimer.Tick+=(s,a)=>{saveTimer.Stop();Save();};
@@ -90,7 +103,7 @@ namespace TokenMonitor {
             timer=new DispatcherTimer {Interval=TimeSpan.FromSeconds(1)};
             timer.Tick+=async(s,a)=>{
                 UpdateLabels();var now=DateTimeOffset.UtcNow;
-                if(MonitoringGpt&&!gptBusy&&now>=nextGpt)await RefreshGpt(false);
+                if(now>=nextKimi)await RefreshKimi(); if(MonitoringGpt&&!gptBusy&&now>=nextGpt)await RefreshGpt(false);
                 if(MonitoringDeep&&!deepBusy&&now>=nextDeep)await RefreshDeep(false);
                 if(MonitoringOpenAi&&!openAiBusy&&now>=nextOpenAi)await RefreshOpenAi(false);
             };
@@ -104,17 +117,25 @@ namespace TokenMonitor {
             if(quitting||Prefs.Appearance!="system")return;
             Dispatcher.BeginInvoke(new Action(()=>{if(!quitting&&Prefs.Appearance=="system")Appearance.Apply("system");}));
         }
+        internal void ApplyFloatOpacity(int percent) {
+            Prefs.FloatOpacity=Math.Max(0,Math.Min(100,percent));
+            foreach(var window in new[]{Gpt,Deep,OpenAi,KimiWindow,KimiApiWindow})
+                window.Opacity=0.45+0.55*Prefs.FloatOpacity/100.0;
+            QueueSave();
+        }
         void QueueSave() {if(smoke||quitting||saveTimer==null)return;saveTimer.Stop();saveTimer.Start();}
         void MakeTray() {
             var menu=new Forms.ContextMenuStrip();
             menu.Items.Add("打开控制面板",null,(s,e)=>Dispatcher.Invoke(new Action(ShowControl)));
             menu.Items.Add("显示 / 隐藏 GPT",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.GptSwitch.IsChecked=!Prefs.Gpt)));
             menu.Items.Add("显示 / 隐藏 DeepSeek",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.DeepSwitch.IsChecked=!Prefs.Deep)));
+            menu.Items.Add("显示 / 隐藏 Kimi 订阅",null,(s,e)=>Dispatcher.Invoke(new Action(()=>SetKimiVisible(!Prefs.KimiFloat,false))));
+            menu.Items.Add("显示 / 隐藏 Kimi API",null,(s,e)=>Dispatcher.Invoke(new Action(()=>SetKimiVisible(!Prefs.KimiApiFloat,true))));
             menu.Items.Add("显示 / 隐藏 OpenAI API",null,(s,e)=>Dispatcher.Invoke(new Action(()=>Main.OpenAiSwitch.IsChecked=!Prefs.OpenAi)));
             menu.Items.Add("检查更新",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>{ShowControl();Main.OpenSettings("关于软件");await CheckUpdates(true);})));
             menu.Items.Add("刷新用量",null,(s,e)=>Dispatcher.Invoke(new Action(async()=>await RefreshAll(true))));
             menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add("退出",null,(s,e)=>Dispatcher.Invoke(new Action(Quit)));
-            tray=new Forms.NotifyIcon {Text="Token Monitor · GPT / DeepSeek / OpenAI API",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
+            tray=new Forms.NotifyIcon {Text="Token Monitor · ChatGPT / DeepSeek / Kimi / OpenAI",Icon=new System.Drawing.Icon(Path.Combine(Paths.Root,"TokenMonitor.ico")),Visible=true,ContextMenuStrip=menu};
             tray.DoubleClick+=(s,e)=>Dispatcher.Invoke(new Action(ShowControl));
         }
         public void ShowControl() {Main.Show();Main.WindowState=WindowState.Normal;Main.Activate();}
@@ -124,6 +145,31 @@ namespace TokenMonitor {
             Gpt.Hide();Orb.Hide();
             if(Prefs.Gpt){if(compact){Orb.ApplyScale();Orb.Show();}else {Gpt.Show();Gpt.Activate();}}
             Save();UpdateLabels();
+        }
+        public void SetKimiVisible(bool show,bool api) {
+            if(api){
+                Prefs.KimiApiFloat=show;
+                Main.KimiApiSwitch.IsChecked=show;
+                if(show)KimiApiWindow.Show();else KimiApiWindow.Hide();
+            } else {
+                Prefs.KimiFloat=show;
+                Main.KimiSwitch.IsChecked=show;
+                KimiWindow.Hide();KimiOrb.Hide();
+                if(show){if(Prefs.KimiOrbMode)KimiOrb.Show();else KimiWindow.Show();}
+            }
+            Save();
+        }
+        public void SetKimiOrbMode(bool compact){
+            Prefs.KimiOrbMode=compact;
+            SetKimiVisible(true,false);
+        }
+        internal void DisplayKimiUsage(QuotaWindow reading,string status){
+            if(reading!=null)lastKimiQuota=reading;
+            KimiWindow.Render(lastKimiQuota,reading==null?status:null,false);
+            KimiOrb.RenderKimi(lastKimiQuota,reading==null?status:null);
+        }
+        internal void DisplayKimiBalance(KimiBalance reading){
+            KimiApiWindow.Render(reading,reading.Amount.HasValue?null:reading.Status,false);
         }
         public void SetDeep(bool show) {Prefs.Deep=show;if(show){Prefs.MonitorDeep=true;Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
         public void ResetDeepCooldown() {deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.MinValue;deepFailures=0;}
@@ -168,10 +214,24 @@ namespace TokenMonitor {
                 if(!quitting){OpenAi.Render(OpenAiData,OpenAiError,false);UpdateLabels();}
             }
         }
+        DateTimeOffset nextKimi;
+        bool kimiBusy;
+        async Task RefreshKimi(){
+            if(offline||kimiBusy||changingStorage)return;
+            kimiBusy=true;
+            try {await Task.WhenAll(UpdateKUsage(),UpdateKBalance());}
+            finally {nextKimi=DateTimeOffset.UtcNow.AddSeconds(Prefs.Interval);kimiBusy=false;}
+        }
+        internal async Task<string> UpdateKUsage() {
+            return Main.ShowKimiUsage(await Kimi.Usage());
+        }
+        internal async Task<string> UpdateKBalance(string key=null,bool save=false) {
+            return Main.ShowKimiBalance(await Kimi.Balance(key,save));
+        }
         public async Task RefreshAll(bool force) {
             if(quitting)return;
             Main.Refresh.IsEnabled=false;
-            try {await Task.WhenAll(MonitoringGpt?RefreshGpt(force):Task.FromResult(0),MonitoringDeep?RefreshDeep(force):Task.FromResult(0),MonitoringOpenAi?RefreshOpenAi(force):Task.FromResult(0));}
+            try {await Task.WhenAll(RefreshKimi(),MonitoringGpt?RefreshGpt(force):Task.FromResult(0),MonitoringDeep?RefreshDeep(force):Task.FromResult(0),MonitoringOpenAi?RefreshOpenAi(force):Task.FromResult(0));}
             finally {if(!quitting)Main.Refresh.IsEnabled=true;}
         }
         static string ErrorMessage(Exception e,bool gpt) {
@@ -196,7 +256,7 @@ namespace TokenMonitor {
             finally {gptBusy=false;if(!quitting){Gpt.Render(GptData,GptError,false);UpdateLabels();}}
         }
         public async Task ResetGptQuota() {
-            if(offline||quitting||changingStorage||gptBusy||!Prefs.Gpt)return;
+            if(offline||quitting||changingStorage||gptBusy||!MonitoringGpt)return;
             gptBusy=true;Gpt.UpdateStatus(GptData,GptError,true);
             string message=null;
             try {
@@ -233,6 +293,11 @@ namespace TokenMonitor {
         public void UpdateLabels() {
             if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
             Orb.Render(GptData,GptError,gptBusy);
+            bool retry=!string.IsNullOrEmpty(Prefs.PendingResetKey);
+            string count=GptData!=null&&GptData.ResetCredits.HasValue?GptData.ResetCredits.Value.ToString():"—";
+            Main.ResetQuota.Content=retry?"确认上次重置":"重置 ("+count+")";
+            Main.ResetQuota.ToolTip=count=="—"?"尚未获知可重置次数":"剩余可重置 "+count+" 次";
+            Main.ResetQuota.IsEnabled=!gptBusy&&(retry||(GptError==null&&GptData!=null&&GptData.ResetCredits.GetValueOrDefault()>0));
             Main.GptInfo.Text=GptError!=null?(GptData!=null?"旧数据 · ":"")+GptError:GptData!=null?"已同步 "+UI.Clock(GptData.Fetched)+" · 剩余额度":"选择连接设置，连接本机账号";
             Main.DeepInfo.Text=DeepError!=null?(DeepData!=null?"旧数据 · ":"")+DeepError:DeepData!=null?"已同步 "+UI.Clock(DeepData.Fetched)+(DeepData.FromHarness?" · Harness":" · API"):"选择连接设置，添加余额来源";
             Main.OpenAiInfo.Text=OpenAiError!=null?(OpenAiData!=null?"旧数据 · ":"")+OpenAiError:OpenAiData!=null?"历史用量已连接 · "+UI.Clock(OpenAiData.Fetched):"选择连接设置，接入历史用量";
@@ -250,6 +315,9 @@ namespace TokenMonitor {
         }
         public void Save() {
             if(smoke||quitting||Main==null||Gpt==null||Deep==null||OpenAi==null)return;
+            Prefs.KimiX=KimiWindow.Left;Prefs.KimiY=KimiWindow.Top;Prefs.KimiWidth=KimiWindow.Width;
+            Prefs.KimiApiX=KimiApiWindow.Left;Prefs.KimiApiY=KimiApiWindow.Top;Prefs.KimiApiWidth=KimiApiWindow.Width;
+            Prefs.KimiOrbX=KimiOrb.Left;Prefs.KimiOrbY=KimiOrb.Top;
             Prefs.OrbX=Orb.Left;Prefs.OrbY=Orb.Top;
             Prefs.MainX=Main.WindowState==WindowState.Normal?Main.Left:Main.RestoreBounds.Left;Prefs.MainY=Main.WindowState==WindowState.Normal?Main.Top:Main.RestoreBounds.Top;Prefs.GptX=Gpt.Left;Prefs.GptY=Gpt.Top;Prefs.DeepX=Deep.Left;Prefs.DeepY=Deep.Top;
             Prefs.GptWidth=Gpt.Width;Prefs.GptHeight=Gpt.Height;Prefs.GptAutoHeight=Gpt.AutoHeight;
@@ -264,7 +332,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v3.2.2";
+                Main.Subtitle.Text="用量，随时可见  ·  v4.0.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -272,7 +340,7 @@ namespace TokenMonitor {
             if(updateTimer!=null)updateTimer.Stop();updates.Dispose();
             if(timer!=null)timer.Stop();if(saveTimer!=null)saveTimer.Stop();if(!smoke)SystemEvents.UserPreferenceChanged-=SystemAppearanceChanged;
             if(tray!=null){tray.Visible=false;tray.Dispose();}
-            Orb.Exiting=true;codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
+            KimiWindow.Exiting=KimiApiWindow.Exiting=KimiOrb.Exiting=Orb.Exiting=true;codex.Dispose();deep.Dispose();openAi.Dispose();Main.Exiting=Gpt.Exiting=Deep.Exiting=OpenAi.Exiting=true;Shutdown();
         }
         async Task RunSmoke() {
             Directory.CreateDirectory(smokeFolder);
@@ -311,15 +379,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v3.2.2");
+                Main.RenderUpdate(null,"当前已是最新版本 v4.0.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v3.2.2"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v4.0.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v3.2.2")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v4.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v3.2.2")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v4.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -353,7 +421,7 @@ namespace TokenMonitor {
                 var mark=Brand.Mark(256);mark.Measure(new Size(256,256));mark.Arrange(new Rect(0,0,256,256));UI.SaveImage(mark,Path.Combine(smokeFolder,"brand.png"));
             }
             if(offline)OpenAiSecretStore.Save(new OpenAiConnection {ApiKey="sk-test-only-ui-openai-key",AdminKey="sk-admin-test-only-ui-openai-key",ApiKeyId="key_ui_test"});
-            Main.OpenSettings("OpenAI 密钥");var settings=Main.SettingsPage;Main.UpdateLayout();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
+            Main.OpenSettings("OpenAI API");var settings=Main.SettingsPage;Main.UpdateLayout();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings.png"));
             if(offline) {
                 OpenAiUiTests.Run(settings,checks);SettingsUiTests.Run(this,checks);
                 settings.Scroll.ScrollToEnd();settings.UpdateLayout();UI.SaveImage(settings,Path.Combine(smokeFolder,"settings-bottom.png"));
@@ -370,7 +438,7 @@ namespace TokenMonitor {
                     OpenAi.UpdateLayout();UI.SaveImage(OpenAi,Path.Combine(smokeFolder,"openai-"+theme+".png"));
                     Prefs.Appearance=theme;Main.OpenSettings("外观设置");Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+".png"));
                     checks[theme+"_custom_chrome"]=Main.WindowStyle==WindowStyle.None&&Main.Surface.CornerRadius.TopLeft==14;
-                    foreach(string page in new[]{"DeepSeek 密钥","OpenAI 密钥","数据目录","关于软件"}) {Main.SettingsPage.SelectPage(page);Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+"-"+page+".png"));}
+                    foreach(string page in new[]{"DeepSeek API","OpenAI API","数据目录","关于软件"}) {Main.SettingsPage.SelectPage(page);Main.UpdateLayout();UI.SaveImage(Main,Path.Combine(smokeFolder,"settings-"+theme+"-"+page+".png"));}
                     Main.ShowOverview();
                     SetOrbMode(true);Orb.ContextMenu.PlacementTarget=Orb;Orb.ContextMenu.IsOpen=true;await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
                     var menu=Orb.ContextMenu;menu.UpdateLayout();UI.SaveImage(menu,Path.Combine(smokeFolder,"orb-menu-"+theme+".png"));
@@ -392,16 +460,16 @@ namespace TokenMonitor {
                     checks["openai_bottom_gap_"+width]=Math.Abs(OpenAi.Scroll.ViewportHeight-OpenAi.Scroll.ExtentHeight)<2;
                 }
                 Gpt.Width=300;Gpt.ResizeBy(0,1,0,-1000);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();
-                checks["short_window_scrolls"]=Gpt.Scroll.ExtentHeight>Gpt.Scroll.ViewportHeight;
+                checks["minimum_shows_full_content"]=Gpt.Scroll.ExtentHeight<=Gpt.Scroll.ViewportHeight+1;
                 checks["resize_keeps_minimum"]=Gpt.Height==Gpt.MinHeight&&!Gpt.AutoHeight;
                 UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-short.png"));Gpt.FitToContent();
                 checks["fit_restores_auto_height"]=Gpt.AutoHeight;
-                var original=GptData.ResetCredits;GptData.ResetCredits=0;Gpt.Render(GptData,null,false);checks["reset_disabled_without_credit"]=!Gpt.ResetQuota.IsEnabled;
-                GptData.ResetCredits=null;Gpt.Render(GptData,null,false);checks["reset_disabled_when_unknown"]=!Gpt.ResetQuota.IsEnabled;
-                GptData.ResetCredits=original;Gpt.Render(GptData,null,false);checks["reset_enabled_with_credit"]=Gpt.ResetQuota.IsEnabled;
-                Gpt.UpdateStatus(GptData,null,true);checks["reset_disabled_while_busy"]=!Gpt.ResetQuota.IsEnabled;
-                Gpt.Render(GptData,"模拟连接失败",false);checks["reset_disabled_on_stale_data"]=!Gpt.ResetQuota.IsEnabled;
-                Prefs.PendingResetKey=Guid.NewGuid().ToString();Gpt.Render(GptData,"模拟连接失败",false);checks["uncertain_reset_can_retry"]=Gpt.ResetQuota.IsEnabled;
+                var original=GptData.ResetCredits;GptData.ResetCredits=0;UpdateLabels();checks["reset_disabled_without_credit"]=!Main.ResetQuota.IsEnabled;
+                GptData.ResetCredits=null;UpdateLabels();checks["reset_disabled_when_unknown"]=!Main.ResetQuota.IsEnabled;
+                GptData.ResetCredits=original;UpdateLabels();checks["reset_enabled_with_credit"]=Main.ResetQuota.IsEnabled;
+                gptBusy=true;UpdateLabels();checks["reset_disabled_while_busy"]=!Main.ResetQuota.IsEnabled;gptBusy=false;
+                GptError="模拟连接失败";UpdateLabels();checks["reset_disabled_on_stale_data"]=!Main.ResetQuota.IsEnabled;
+                Prefs.PendingResetKey=Guid.NewGuid().ToString();UpdateLabels();checks["uncertain_reset_can_retry"]=Main.ResetQuota.IsEnabled;GptError=null;
                 Prefs.PendingResetKey=null;Gpt.Render(null,"模拟首次连接失败",false);Gpt.FitToContent();await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-empty.png"));
                 checks["no_live_queries_or_reset"]=true;
             }

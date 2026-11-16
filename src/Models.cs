@@ -103,10 +103,12 @@ namespace TokenMonitor {
     public class Preferences {
         public bool Gpt=true, Deep=true, OpenAi=false;
         public bool? MonitorGpt,MonitorDeep,MonitorOpenAi;
-        public int Interval=30;
+        public int HiddenHome=0; public int Interval=30;
         public string FontSize="medium";
-        public bool OrbMode=false;
-        public int OrbScale=100;
+        public bool OrbMode=false,KimiFloat,KimiApiFloat,KimiOrbMode;
+        public double KimiOrbX=-1,KimiOrbY=-1,KimiX=-1,KimiY=-1,KimiApiX=-1,KimiApiY=-1;
+        public double KimiWidth=230,KimiApiWidth=230;
+        public int OrbScale=100, FloatOpacity=100;
         public double OrbX=-1,OrbY=-1;
         public string DeepSource="api";
         public string Appearance="system", PendingResetKey;
@@ -124,9 +126,10 @@ namespace TokenMonitor {
                 if(p.DeepSource!="harness")p.DeepSource="api";
                 p.Interval=new[]{15,30,60,120}.Contains(p.Interval)?p.Interval:30;
                 if(!new[]{"system","light","dark"}.Contains(p.Appearance))p.Appearance="system";
-                p.GptWidth=Size(p.GptWidth,300,1600,368);p.DeepWidth=Size(p.DeepWidth,300,1600,368);
-                p.GptHeight=Size(p.GptHeight,210,1600,500);p.DeepHeight=Size(p.DeepHeight,210,1600,445);
-                p.OpenAiWidth=Size(p.OpenAiWidth,300,1600,368);p.OpenAiHeight=Size(p.OpenAiHeight,210,1600,500);
+                p.GptWidth=Size(p.GptWidth,180,1600,368);p.DeepWidth=Size(p.DeepWidth,180,1600,368);
+                p.GptHeight=Size(p.GptHeight,48,1600,500);p.DeepHeight=Size(p.DeepHeight,48,1600,445);
+                p.OpenAiWidth=Size(p.OpenAiWidth,180,1600,368);p.OpenAiHeight=Size(p.OpenAiHeight,48,1600,500);
+                p.KimiWidth=Size(p.KimiWidth,180,1600,230);p.KimiApiWidth=Size(p.KimiApiWidth,180,1600,230);
                 Guid key;if(!Guid.TryParse(p.PendingResetKey,out key))p.PendingResetKey=null;
                 return p; }
             catch { return new Preferences(); }

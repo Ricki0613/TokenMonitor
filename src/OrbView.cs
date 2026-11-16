@@ -20,29 +20,36 @@ namespace TokenMonitor {
     public sealed class OrbView : Window {
         public static readonly int[] Scales={80,100,125,150,200};
         readonly MonitorApp app;
+        readonly bool kimi;
         readonly Path shortArc,longArc;
         public readonly TextBlock ShortText,LongText;
         readonly TextBlock state;
         internal readonly TextBlock HoverShort,HoverWeek,HoverHint;
         readonly ToolTip hoverTip;
         public bool Exiting;
-        public OrbView(MonitorApp app) {
-            this.app=app;Title="ChatGPT 额度 · Token Monitor";
+        public OrbView(MonitorApp app,bool kimi=false) {
+            this.app=app;this.kimi=kimi;Title=(kimi?"Kimi":"ChatGPT")+" 额度 · Token Monitor";
             WindowStyle=WindowStyle.None;AllowsTransparency=true;Background=Brushes.Transparent;
             ResizeMode=ResizeMode.NoResize;Topmost=true;ShowInTaskbar=false;
             var canvas=new Canvas {Width=100,Height=100,Background=Brushes.Transparent};
             var disc=new Ellipse {Width=98,Height=98,Fill=UI.Brush("#171D2B"),Stroke=UI.Brush("#414B61"),StrokeThickness=1};Canvas.SetLeft(disc,1);Canvas.SetTop(disc,1);canvas.Children.Add(disc);
-            AddArc(canvas,214,112,"#30434B");AddArc(canvas,340,220,"#38354E");
-            shortArc=AddArc(canvas,214,112,"#5EEAD4");longArc=AddArc(canvas,340,220,"#A99CFF");
-            ShortText=Label(canvas,16,"—", "#8EF3E1");LongText=Label(canvas,68,"—","#C7BEFF");
-            var mark=Brand.Mark(29);Canvas.SetLeft(mark,35.5);Canvas.SetTop(mark,37);canvas.Children.Add(mark);
-            state=Label(canvas,43,"", "#FFBF75");state.FontSize=13;state.Width=18;Canvas.SetLeft(state,74);
+            disc.SetResourceReference(Shape.FillProperty,"SurfaceBrush");
+            disc.SetResourceReference(Shape.StrokeProperty,"BorderBrush");
+            AddArc(canvas,kimi?270:214,kimi?359.99:112,"TrackBrush");
+            if(!kimi)AddArc(canvas,340,220,"TrackBrush");
+            shortArc=AddArc(canvas,kimi?270:214,kimi?0:112,"GreenBrush");
+            longArc=AddArc(canvas,340,kimi?0:220,"BlueBrush");
+            ShortText=Label(canvas,kimi?51:16,"—","InkBrush");
+            LongText=Label(canvas,68,"—","InkBrush");
+            if(kimi){LongText.Visibility=Visibility.Collapsed;Label(canvas,30,"Kimi","MutedBrush");}
+            else {var mark=Brand.Mark(29);Canvas.SetLeft(mark,35.5);Canvas.SetTop(mark,37);canvas.Children.Add(mark);}
+            state=Label(canvas,43,"","WarningBrush");state.FontSize=13;state.Width=18;Canvas.SetLeft(state,74);
             Content=new Viewbox {Child=canvas};ApplyScale();Loaded+=(s,e)=>Clamp();
             var tooltipBody=new StackPanel();
             var resetRows=new Grid();resetRows.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});resetRows.ColumnDefinitions.Add(new ColumnDefinition {Width=GridLength.Auto});
             var times=new StackPanel();Grid.SetColumn(times,1);resetRows.Children.Add(times);
             HoverShort=UI.Text("待同步  (5h)",14,UI.Ink);HoverShort.Margin=new Thickness(0,0,0,4);times.Children.Add(HoverShort);
-            HoverWeek=UI.Text("待同步  (week)",14,UI.Ink);times.Children.Add(HoverWeek);
+            HoverWeek=UI.Text("待同步  (week)",14,UI.Ink);times.Children.Add(HoverWeek);if(kimi)HoverWeek.Visibility=Visibility.Collapsed;
             tooltipBody.Children.Add(resetRows);
             HoverHint=UI.Text("双击详情 · 右键菜单",11.5,UI.Muted);HoverHint.Margin=new Thickness(0,10,0,0);tooltipBody.Children.Add(HoverHint);
             hoverTip=new ToolTip {Content=tooltipBody,Padding=new Thickness(15,12,15,11)};
@@ -55,21 +62,29 @@ namespace TokenMonitor {
             surface.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));template.VisualTree=surface;hoverTip.Template=template;
             ToolTip=hoverTip;ToolTipService.SetShowDuration(this,20000);
             var menu=new ContextMenu();
-            AddMenu(menu,"展开额度详情",()=>app.SetOrbMode(false));AddMenu(menu,"打开控制中心",app.ShowControl);
-            AddMenu(menu,"立即刷新",async()=>await app.RefreshGpt(true));AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();app.Main.OpenSettings("外观设置");});
-            AddMenu(menu,"隐藏悬浮球",()=>app.Main.GptSwitch.IsChecked=false);ContextMenu=menu;
-            MouseLeftButtonDown+=(s,e)=>{if(e.ClickCount==2){app.SetOrbMode(false);return;}try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
-            KeyDown+=(s,e)=>{if(e.Key==Key.Enter)app.SetOrbMode(false);};
-            Closing+=(s,e)=>{if(!Exiting){e.Cancel=true;app.Main.GptSwitch.IsChecked=false;}};
-            AutomationProperties.SetName(this,"ChatGPT 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");
+            AddMenu(menu,"展开额度详情",ShowDetails);AddMenu(menu,"打开控制中心",app.ShowControl);
+            AddMenu(menu,"立即刷新",async()=>{if(kimi)await app.UpdateKUsage();else await app.RefreshGpt(true);});AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();app.Main.OpenSettings("外观设置");});
+            AddMenu(menu,"隐藏悬浮球",HideService);ContextMenu=menu;
+            MouseLeftButtonDown+=(s,e)=>{if(e.ClickCount==2){ShowDetails();return;}try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
+            KeyDown+=(s,e)=>{if(e.Key==Key.Enter)ShowDetails();};
+            Closing+=(s,e)=>{if(!Exiting){e.Cancel=true;HideService();}};
+            AutomationProperties.SetName(this,kimi?"Kimi 订阅剩余额度悬浮球":"ChatGPT 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");
+        }
+        void ShowDetails(){if(kimi)app.SetKimiOrbMode(false);else app.SetOrbMode(false);}
+        void HideService(){if(kimi)app.SetKimiVisible(false,false);else app.Main.GptSwitch.IsChecked=false;}
+        internal void RenderKimi(QuotaWindow window,string error){
+            Draw(shortArc,ShortText,window,270,359.99);
+            state.Text=error==null?"":"!";
+            HoverShort.Text="重置 "+ResetTime(window);
+            HoverHint.Text=error??"双击详情 · 右键菜单";
         }
         static void AddMenu(ContextMenu menu,string title,Action action){var item=new MenuItem {Header=title};item.Click+=(s,e)=>action();menu.Items.Add(item);}
         static TextBlock Label(Canvas canvas,double top,string text,string color) {
-            var label=new TextBlock {Text=text,Foreground=UI.Brush(color),FontFamily=new FontFamily("Segoe UI, Microsoft YaHei UI"),FontWeight=FontWeights.SemiBold,FontSize=14,Width=84,TextAlignment=TextAlignment.Center};
-            Canvas.SetLeft(label,8);Canvas.SetTop(label,top);canvas.Children.Add(label);return label;
+            var label=new TextBlock {Text=text,FontFamily=(FontFamily)Application.Current.FindResource("InterfaceFont"),FontWeight=FontWeights.SemiBold,FontSize=14,Width=84,TextAlignment=TextAlignment.Center};
+            label.SetResourceReference(TextBlock.ForegroundProperty,color);Canvas.SetLeft(label,8);Canvas.SetTop(label,top);canvas.Children.Add(label);return label;
         }
         static Path AddArc(Canvas canvas,double start,double sweep,string color) {
-            var path=new Path {Stroke=UI.Brush(color),StrokeThickness=4,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,Data=Arc(start,sweep)};canvas.Children.Add(path);return path;
+            var path=new Path {StrokeThickness=4,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,Data=Arc(start,sweep)};path.SetResourceReference(Shape.StrokeProperty,color);canvas.Children.Add(path);return path;
         }
         public static Geometry Arc(double start,double sweep) {
             if(sweep<=0)return Geometry.Empty;
@@ -79,7 +94,12 @@ namespace TokenMonitor {
             return new PathGeometry(new[]{figure});
         }
         public void ApplyScale(){Width=Height=76.0*app.Prefs.OrbScale/100; if(IsLoaded)Clamp();}
-        public void Place(){var area=SystemParameters.WorkArea;Left=Finite(app.Prefs.OrbX)?app.Prefs.OrbX:area.Right-Width-24;Top=Finite(app.Prefs.OrbY)?app.Prefs.OrbY:area.Top+50;Clamp();}
+        public void Place(){
+            var area=SystemParameters.WorkArea;
+            double x=kimi?app.Prefs.KimiOrbX:app.Prefs.OrbX,y=kimi?app.Prefs.KimiOrbY:app.Prefs.OrbY;
+            Left=Finite(x)?x:area.Right-Width-24;Top=Finite(y)?y:area.Top+50+(kimi?Width+10:0);
+            Clamp();
+        }
         static bool Finite(double n){return n!=-1&&!double.IsNaN(n)&&!double.IsInfinity(n);}
         public void Clamp(){
             // Resolve the nearest physical monitor, then convert its work area back to WPF units.

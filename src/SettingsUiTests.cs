@@ -16,7 +16,7 @@ namespace TokenMonitor {
             var scale=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="ChatGPT 悬浮球大小");
             var interval=app.Main.Interval;
             checks["appearance_excludes_refresh_interval"]=!nodes.OfType<TextBlock>().Any(x=>x.Text=="自动刷新");
-            var save=nodes.OfType<Button>().First(x=>Equals(x.Content,"保存密钥设置"));
+            var save=nodes.OfType<Button>().First(x=>Equals(x.Content,"保存连接设置"));
             var before=File.ReadAllBytes(Paths.OpenAiKey);
             api.Password="sk-test-only-unsubmitted-change";
             int count=app.Windows.Count;
@@ -27,7 +27,7 @@ namespace TokenMonitor {
             var font=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="界面字号");font.SelectedIndex=2;checks["font_size_persisted"]=Preferences.Load().FontSize=="large";font.SelectedIndex=1;
             checks["appearance_has_no_save_button"]=save.Visibility==Visibility.Collapsed;
             checks["appearance_does_not_commit_pending_key"]=before.SequenceEqual(File.ReadAllBytes(Paths.OpenAiKey));
-            view.SelectPage("OpenAI 密钥");checks["navigation_keeps_unsaved_key"]=api.Password=="sk-test-only-unsubmitted-change"&&save.Visibility==Visibility.Visible;
+            view.SelectPage("OpenAI API");checks["navigation_keeps_unsaved_key"]=api.Password=="sk-test-only-unsubmitted-change"&&save.Visibility==Visibility.Visible;
             api.Clear();
             view.SelectPage("关于软件");app.Main.RenderUpdate(null,"模拟更新状态");view.UpdateLayout();
             checks["about_contains_live_update_status"]=Walk(view).OfType<TextBlock>().Any(x=>x.Text=="模拟更新状态");
@@ -35,7 +35,7 @@ namespace TokenMonitor {
             checks["about_has_no_save_button"]=save.Visibility==Visibility.Collapsed;
             view.SelectPage("外观设置");appearance.SelectedIndex=1;scale.SelectedIndex=1;
             checks["light_theme_also_applies_immediately"]=!Appearance.Dark&&Preferences.Load().Appearance=="light";
-            view.SelectPage("OpenAI 密钥");
+            view.SelectPage("OpenAI API");
         }
         public static IEnumerable<DependencyObject> Walk(DependencyObject node) {
             yield return node;

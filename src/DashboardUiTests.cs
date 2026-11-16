@@ -17,10 +17,44 @@ namespace TokenMonitor {
             minimize.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));checks["custom_minimize_works"]=main.WindowState==WindowState.Minimized;main.WindowState=WindowState.Normal;
             close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));checks["custom_close_hides_to_tray"]=!main.IsVisible;main.Show();main.UpdateLayout();
             checks["header_uses_brand_logo"]=SettingsUiTests.Walk(main).OfType<Viewbox>().Any(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="Token Monitor 标志");
+            var sample=Kimi.ParseUsage("我的订阅 用量进度 总使用量 68.91% 2026-12-02 17:22 后重置");
+            main.ShowKimiUsage(sample);
+            main.ShowKimiBalance(new KimiBalance(12.34){Cash=10.00,Voucher=2.34});
+            main.UpdateLayout();
+            var kimiText=SettingsUiTests.Walk(main).OfType<TextBlock>().Select(t=>t.Text);
+            checks["kimi_remaining_progress"]=sample!=null&&sample.Reset.HasValue&&kimiText.Contains("31.09%")&&kimiText.Contains("¥12.34")&&kimiText.Contains("¥10.00")&&kimiText.Contains("¥2.34");
+            app.SetKimiVisible(true,false);app.SetKimiVisible(true,true);
+            app.SetKimiOrbMode(true);
+            checks["kimi_orb_replaces_quota_window"]=app.KimiOrb.IsVisible&&!app.KimiWindow.IsVisible&&app.KimiApiWindow.IsVisible&&app.KimiOrb.ShortText.Text=="31%";
+            app.SetKimiOrbMode(false);
+            checks["kimi_details_restore"]=app.KimiWindow.IsVisible&&!app.KimiOrb.IsVisible;
+            app.Gpt.Render(app.GptData,null,false);
+            FontSizing.Apply("large");
+            foreach(var window in new[]{app.Gpt,app.Deep,app.OpenAi,app.KimiWindow,app.KimiApiWindow}){
+                window.Width=window.MinWidth;
+                window.FitToContent();
+                await app.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
+                window.UpdateLayout();
+                var buttons=SettingsUiTests.Walk(window).OfType<Button>().Where(x=>x.IsVisible).ToList();
+                checks["compact_minimum_"+window.Title]=buttons.Count==1&&window.MinWidth<200&&window.Scroll.VerticalScrollBarVisibility==ScrollBarVisibility.Disabled
+                    &&window.Body.ActualHeight<=window.Scroll.ViewportHeight+1&&window.Body.ActualWidth<=window.Scroll.ViewportWidth+1;
+                UI.SaveImage(window,Path.Combine(folder,"minimum-"+window.Title+".png"));
+            }
+            FontSizing.Apply("medium");
+            app.SetKimiVisible(false,false);app.SetKimiVisible(false,true);
+            for(int count=1;count<=5;count++){
+                app.Prefs.HiddenHome=31^(1<<count)-1;
+                main.HomeVisibility();
+                main.UpdateLayout();
+                var buttons=SettingsUiTests.Walk(main).OfType<Button>().Where(x=>Equals(x.Content,"连接设置")&&x.IsVisible).ToArray();
+                var home=(Grid)main.Scroll.Content;
+                checks["home_preset_"+count]=buttons.Length==count&&home.ActualHeight>=main.Scroll.ViewportHeight-1;
+                UI.SaveImage(main,Path.Combine(folder,"home-"+count+".png"));
+            }
             var text=SettingsUiTests.Walk(main).OfType<TextBlock>().Select(x=>x.Text).ToList();
             checks["dashboard_two_remaining_percentages"]=text.Contains("72%")&&text.Contains("39%");
             checks["dashboard_today_and_month"]=text.Contains("150,200")&&text.Contains("5,098,940");
-            checks["dashboard_connection_actions"]=SettingsUiTests.Walk(main).OfType<Button>().Count(x=>Equals(x.Content,"连接设置"))==3;
+            checks["dashboard_connection_actions"]=SettingsUiTests.Walk(main).OfType<Button>().Count(x=>Equals(x.Content,"连接设置"))==5;
             main.GptSwitch.IsChecked=false;main.DeepSwitch.IsChecked=false;main.OpenAiSwitch.IsChecked=false;
             checks["hidden_floats_keep_monitoring"]=app.MonitoringGpt&&app.MonitoringDeep&&app.MonitoringOpenAi&&!app.Gpt.IsVisible&&!app.Deep.IsVisible&&!app.OpenAi.IsVisible;
             await app.RefreshAll(true);
