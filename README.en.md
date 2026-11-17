@@ -2,7 +2,7 @@
   <img src="assets/TokenMonitor.png" width="72" alt="Token Monitor logo">
 </p>
 <h1 align="center">Token Monitor</h1>
-<p align="center"><strong>Your limits, balances and API usage at a glance.</strong><br>A Windows desktop monitor for Codex / ChatGPT Work, DeepSeek and OpenAI API.</p>
+<p align="center"><strong>Your limits, balances and API usage at a glance.</strong><br>A Windows desktop monitor for Codex / ChatGPT Work, DeepSeek, Kimi subscription, Kimi API and OpenAI API.</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
   <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.0.0-10A37F" alt="Version 4.0.0"></a>
@@ -24,12 +24,12 @@
 
 ## Keep usage close
 
-See three services in one dashboard while coding or calling models, then keep the figures you need on your desktop.
+See five selectable service cards in one dashboard while coding or calling models, then keep the figures you need on your desktop. The layout adapts to the number of cards.
 
-- **Compact quota orb**: two percentages show remaining 5-hour and weekly quota. Drag to move, double-click for details, and choose from five sizes. Hover to see both reset times to the minute (Beijing time).
+- **Compact quota orbs**: ChatGPT shows remaining 5-hour and weekly quota; Kimi shows remaining subscription quota. Drag to move, double-click for details, and choose from five sizes.
 - **Independent floating windows**: show, hide, move and resize each service separately. Connected services keep refreshing when their floats are hidden.
 - **Local history**: 7-day and 30-day charts with 90-day retention. Missing observations remain missing.
-- **Personal appearance**: light, dark or system theme, three font sizes and persistent sidebar navigation.
+- **Personal appearance**: light, dark or system theme, three font sizes, selectable dashboard cards and adjustable floating-window opacity.
 - **Updates and rollback**: download in the app, verify the package, confirm a restart, and retain the previous version for rollback.
 
 ## Supported data
@@ -38,6 +38,8 @@ See three services in one dashboard while coding or calling models, then keep th
 | --- | --- | --- |
 | **ChatGPT / Codex** | Shared Codex / ChatGPT Work remaining quota, reset times and available reset credits | Locally signed-in Codex |
 | **DeepSeek** | Available, topped-up and granted balances, separated by currency | API Key or local DeepSeek Harness sign-in |
+| **Kimi subscription** | Remaining quota, progress and reset time | Open the subscription page in the Kimi desktop app |
+| **Kimi API** | Available balance and cash / voucher balances when returned | Domestic Kimi open-platform API Key |
 | **OpenAI API** | Today/month tokens, input/output/cached input and request counts for a selected API Key ID | Ordinary API Key; history also requires an Admin API Key and matching Key ID |
 
 ChatGPT data covers the Codex / ChatGPT Work quota pool. OpenAI statistics cover requests reported by the official `usage/completions` endpoint; cached input is already included in input tokens.
@@ -56,9 +58,13 @@ See [installation and troubleshooting](docs/START_HERE.zh-CN.md) and the [full u
 
 ### DeepSeek: API Key or Harness
 
-Enter an API Key in **DeepSeek 密钥**, or sign in to Harness under the same Windows user and select **DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户**. Save the selection; Harness does not need to remain running.
+Enter an API Key in **DeepSeek API**, or sign in to Harness under the same Windows user and select **DeepSeek API → DeepSeek 余额来源 → DeepSeek Harness 登录账户**. Save the selection; Harness does not need to remain running.
 
 Harness mode combines recharge and bonus wallets per currency. It reads the default local grant on demand without copying it into Token Monitor. You can switch between the two sources. Custom Harness data directories and unofficial servers are unsupported. See [credential handling](SECURITY.md).
+
+### Kimi subscription and API
+
+Open **设置 → 我的订阅** in the Kimi desktop app, then use **Kimi 订阅** to read its displayed usage. The page must be open and its text accessible. Under **Kimi API**, enter a domestic open-platform API Key. Subscription quota and API balance are separate.
 
 ### OpenAI: key verification and usage access
 
@@ -86,7 +92,7 @@ Stable releases are checked at startup and every six hours after a successful ch
 
 Normal operation and credential saving need no administrator privileges. Data defaults to `%LOCALAPPDATA%\TokenMonitor`. Select a writable empty folder in **数据目录** to copy and verify settings, credentials and history before switching; the original remains a backup.
 
-- DeepSeek and OpenAI keys use Windows DPAPI encryption for the current user.
+- DeepSeek, Kimi and OpenAI API keys use Windows DPAPI encryption for the current user.
 - Harness credentials are read on demand and sent only to the official DeepSeek service.
 - Usage checks do not send model inference requests. Redeeming an official quota-reset credit requires separate confirmation.
 - Update checks send no account usage, credentials or local settings to GitHub.
@@ -110,7 +116,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 
 Output: `build/`. Builds use the .NET Framework C# compiler. Offline tests use simulated data and need no real accounts or keys. Generate packages with `scripts/package.ps1` and check installation with `scripts/test-package.ps1 -Archive <ZIP>`.
 
-The README image is generated at 2x resolution from native WPF controls using `scripts/render-readme.ps1` and simulated data. Maintainers should publish a stable Release containing the runtime ZIP and mark it Latest; a Git tag alone does not trigger update notices.
+The README poster combines application screenshots with simulated data. Maintainers should publish a stable Release containing the runtime ZIP and mark it Latest; a Git tag alone does not trigger update notices.
 
 </details>
 
@@ -118,4 +124,4 @@ The README image is generated at 2x resolution from native WPF controls using `s
 
 [MIT License](LICENSE) · Copyright (c) 2026 Ricki0613
 
-An independent project, not affiliated with OpenAI or DeepSeek.
+An independent project, not affiliated with OpenAI, DeepSeek or Moonshot AI.

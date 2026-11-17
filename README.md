@@ -2,7 +2,7 @@
   <img src="assets/TokenMonitor.png" width="72" alt="Token Monitor logo">
 </p>
 <h1 align="center">Token Monitor</h1>
-<p align="center"><strong>额度、余额、API 用量，一眼可见。</strong><br>为 Windows 桌面打造的用量监控工具，支持 Codex / ChatGPT Work、DeepSeek 与 OpenAI API。</p>
+<p align="center"><strong>额度、余额、API 用量，一眼可见。</strong><br>为 Windows 桌面打造的用量监控工具，支持 ChatGPT、DeepSeek、Kimi 订阅、Kimi API 与 OpenAI API。</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
   <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.0.0-10A37F" alt="Version 4.0.0"></a>
@@ -24,10 +24,10 @@
 
 ## 用量就在手边
 
-写代码、调用模型时，不必来回打开用量页面。Token Monitor 在一个概览中汇集三种服务，也能把你关心的数据留在桌面上。
+写代码、调用模型时，不必来回打开用量页面。Token Monitor 在主页汇集五个板块，也能把你关心的数据留在桌面上。主页可选择展示的板块，并根据数量自动调整布局。
 
-- **轻巧悬浮球**：两行百分比分别显示 5 小时和每周剩余额度；可拖动，双击展开详情，支持五档大小；鼠标悬停可查看两项额度的重置时间（北京时间，精确到分钟）。
-- **独立浮窗**：ChatGPT、DeepSeek、OpenAI 各自开关，支持拖动与调整尺寸。隐藏浮窗后，已连接服务继续刷新。
+- **悬浮球**：ChatGPT 显示 5 小时和每周剩余额度，Kimi 订阅显示剩余额度；支持拖动、双击展开浮窗和五档大小，颜色随主题变化。
+- **独立浮窗**：五个板块可各自开关，支持拖动、调整尺寸和不透明度。隐藏浮窗后，已连接服务继续刷新。
 - **本地历史趋势**：查看近 7 天／30 天变化，保留 90 天记录；缺失数据不补造。
 - **按习惯显示**：浅色、深色、随系统主题，小／中／大字号，常驻左侧导航。
 - **更新与回退**：应用内下载安装包，校验后确认重启；保留上一版，支持回退。
@@ -38,6 +38,8 @@
 | --- | --- | --- |
 | **ChatGPT / Codex** | Codex 与 ChatGPT Work 共用的剩余额度、重置时间、可用重置次数 | 使用本机已登录的 Codex |
 | **DeepSeek** | 可用余额、充值余额、赠送余额，按币种分别显示 | 手动 API Key 或本机 DeepSeek Harness 登录状态 |
+| **Kimi 订阅** | 剩余额度、进度条和重置时间 | 打开 Kimi 桌面端「设置 → 我的订阅」后读取页面 |
+| **Kimi API** | 可用余额，以及接口返回的现金和代金券余额 | 国内 Kimi 开放平台 API Key |
 | **OpenAI API** | 指定 API Key ID 的今日／本月 tokens、输入／输出／缓存输入、请求数 | 普通 API Key；历史用量另需 Admin API Key 与匹配的 Key ID |
 
 ChatGPT 数据不涵盖普通聊天中所有模型的消息限额。OpenAI 统计范围为官方 `usage/completions` 接口覆盖的请求，缓存输入属于输入 tokens，不重复相加。
@@ -50,16 +52,22 @@ ChatGPT 数据不涵盖普通聊天中所有模型的消息限额。OpenAI 统�
 2. 运行 **Install.cmd**，选择程序与数据目录；安装助手会创建桌面和开始菜单快捷方式。也可直接运行解压后的 `TokenMonitor.exe`。
 3. 从卡片的 **连接设置** 接入需要的服务，再按需打开浮窗或悬浮球。
 
-自动刷新默认 **30 秒**，可在账户概览选择 15 / 30 / 60 / 120 秒或立即刷新。关闭主窗口会收起到托盘；双击托盘图标恢复，托盘菜单可彻底退出。
+自动刷新默认 **30 秒**，可在主页选择 15 / 30 / 60 / 120 秒或立即刷新。关闭主窗口会收起到托盘；双击托盘图标恢复，托盘菜单可彻底退出。
 
 安装或连接遇到问题？查看 [安装与排错](docs/START_HERE.zh-CN.md) 和 [完整使用指南](docs/USER_GUIDE.zh-CN.md)。
 
 ### DeepSeek：API Key 或 Harness，任选其一
 
-- **API Key**：在左栏「DeepSeek 密钥」中选择手动 API Key，填写并保存。
-- **Harness 登录账户**：先在同一 Windows 用户下登录 DeepSeek Harness，再选择「DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户」并保存，无需保持 Harness 运行。
+- **API Key**：在左栏「DeepSeek API」中选择手动 API Key，填写并保存。
+- **Harness 登录账户**：先在同一 Windows 用户下登录 DeepSeek Harness，再选择「DeepSeek API → DeepSeek 余额来源 → DeepSeek Harness 登录账户」并保存，无需保持 Harness 运行。
 
 Harness 模式按币种合并充值与赠送钱包；凭据从默认本机位置按需读取，不复制到 Token Monitor。两种来源可以切换。当前不支持自定义 Harness 数据目录或非官方服务器，详见 [凭据处理说明](SECURITY.md)。
+
+### Kimi：订阅与 API 分别连接
+
+在 Kimi 桌面端打开「设置 → 我的订阅」，再到 Token Monitor 的「Kimi 订阅」读取用量。该功能读取桌面端界面文字，页面未打开或文字无法读取时会显示等待或上次读取状态。
+
+在「Kimi API」填写国内开放平台 API Key，验证成功后加密保存。订阅额度与 API 余额分别展示。
 
 ### OpenAI：验证密钥与读取用量分两步
 
@@ -87,7 +95,7 @@ Harness 模式按币种合并充值与赠送钱包；凭据从默认本机位置
 
 正常运行和保存密钥不需要管理员权限。默认数据目录为 `%LOCALAPPDATA%\TokenMonitor`；在「数据目录」中选择可写空文件夹，可复制并校验配置、密钥与历史，原目录保留备份。
 
-- DeepSeek 与 OpenAI 密钥使用 Windows DPAPI 按当前用户加密保存。
+- DeepSeek、Kimi 与 OpenAI API Key 使用 Windows DPAPI 按当前用户加密保存。
 - Harness 登录凭据按需读取，只发送给对应的官方 DeepSeek 服务。
 - 读取额度和用量不会发起模型对话；官方额度重置操作须单独确认。
 - 更新检查不发送本机配置、密钥或账户用量。
@@ -119,7 +127,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 | `installer/` | 安装助手 |
 | `docs/` | 使用指南与发布说明 |
 
-展示图由 `scripts/render-readme.ps1` 从原生 WPF 控件以双倍分辨率生成，使用模拟数据。维护者应发布带运行包的正式 Release 并标记为 Latest；仅推送 Git 标签不会触发应用更新提醒。
+展示海报使用应用界面截图和模拟数据排版。维护者应发布带运行包的正式 Release 并标记为 Latest；仅推送 Git 标签不会触发应用更新提醒。
 
 </details>
 
@@ -127,4 +135,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 
 [MIT License](LICENSE) · Copyright (c) 2026 Ricki0613
 
-本项目为独立开源工具，与 OpenAI、DeepSeek 无官方隶属关系。
+本项目为独立开源工具，与 OpenAI、DeepSeek、Moonshot AI 无官方隶属关系。

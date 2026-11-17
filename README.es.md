@@ -2,7 +2,7 @@
   <img src="assets/TokenMonitor.png" width="72" alt="Token Monitor">
 </p>
 <h1 align="center">Token Monitor</h1>
-<p align="center"><strong>Cuotas, saldos y uso de API de un vistazo.</strong><br>Un monitor de escritorio para Windows compatible con Codex / ChatGPT Work, DeepSeek y OpenAI API.</p>
+<p align="center"><strong>Cuotas, saldos y uso de API de un vistazo.</strong><br>Un monitor de escritorio para Windows compatible con Codex / ChatGPT Work, DeepSeek, suscripción de Kimi, Kimi API y OpenAI API.</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
   <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.0.0-10A37F" alt="Version 4.0.0"></a>
@@ -24,12 +24,12 @@
 
 ## Tu uso, siempre a mano
 
-Consulta tres servicios en un solo panel mientras programas o utilizas modelos, y mantén los datos que necesitas a la vista en el escritorio.
+Consulta cinco tarjetas seleccionables en un solo panel mientras programas o utilizas modelos. La disposición se adapta al número de tarjetas.
 
-- **Esfera flotante compacta**: dos porcentajes muestran la cuota restante de 5 horas y la semanal. Arrástrala para moverla, haz doble clic para ver los detalles y elige entre cinco tamaños. Sitúa el cursor encima para ver la fecha y hora de ambos restablecimientos con precisión de minutos (hora de Pekín).
+- **Esferas flotantes**: ChatGPT muestra las cuotas restantes de 5 horas y semanal, y Kimi muestra la cuota restante de la suscripción. Puedes arrastrarlas, abrir los detalles con doble clic y elegir entre cinco tamaños.
 - **Ventanas flotantes independientes**: muestra, oculta, mueve y redimensiona cada servicio por separado. Los servicios conectados siguen actualizándose aunque ocultes sus ventanas.
 - **Historial local**: gráficos de 7 y 30 días con conservación de 90 días. Los datos que no se han recogido no se inventan.
-- **Aspecto personalizable**: tema claro, oscuro o del sistema, tres tamaños de letra y navegación lateral permanente.
+- **Aspecto personalizable**: tema claro, oscuro o del sistema, tres tamaños de letra, tarjetas seleccionables y opacidad ajustable para las ventanas.
 - **Actualización y restauración**: descarga y verifica el paquete desde la aplicación, confirma el reinicio y conserva la versión anterior para poder volver a ella.
 
 ## Datos disponibles
@@ -38,6 +38,8 @@ Consulta tres servicios en un solo panel mientras programas o utilizas modelos, 
 | --- | --- | --- |
 | **ChatGPT / Codex** | Cuota restante compartida de Codex / ChatGPT Work, horas de restablecimiento y restablecimientos disponibles | Codex con sesión iniciada en el equipo |
 | **DeepSeek** | Saldo disponible, recargado y promocional, separados por moneda | API Key o sesión local de DeepSeek Harness |
+| **Suscripción de Kimi** | Cuota restante, progreso y hora de restablecimiento | Abre la página de suscripción en la aplicación de escritorio de Kimi |
+| **Kimi API** | Saldo disponible y saldos de efectivo y cupones cuando los devuelve la API | API Key de la plataforma nacional de Kimi |
 | **OpenAI API** | Tokens de hoy y del mes, entrada/salida/entrada en caché y solicitudes para un API Key ID | API Key normal; el historial también requiere una Admin API Key y el Key ID correspondiente |
 
 Los datos de ChatGPT cubren la cuota de Codex / ChatGPT Work, no todos los límites de mensajes del chat. Las estadísticas de OpenAI abarcan el endpoint oficial `usage/completions`. La entrada en caché ya está incluida en los tokens de entrada y no se suma dos veces.
@@ -56,9 +58,13 @@ El intervalo predeterminado es de **30 segundos**. En el panel puedes elegir 15 
 
 ### DeepSeek: API Key o Harness
 
-Introduce una API Key en **DeepSeek 密钥**, o inicia sesión en Harness con el mismo usuario de Windows y selecciona **DeepSeek 密钥 → DeepSeek 余额来源 → DeepSeek Harness 登录账户**. Guarda la selección; no es necesario mantener Harness abierto.
+Introduce una API Key en **DeepSeek API**, o inicia sesión en Harness con el mismo usuario de Windows y selecciona **DeepSeek API → DeepSeek 余额来源 → DeepSeek Harness 登录账户**. Guarda la selección; no es necesario mantener Harness abierto.
 
 El modo Harness combina los saldos recargados y promocionales por moneda. Lee las credenciales desde su ubicación local predeterminada cuando las necesita, sin copiarlas al almacenamiento de Token Monitor. Puedes cambiar entre ambas fuentes. No se admiten carpetas personalizadas de Harness ni servidores no oficiales. Consulta el [tratamiento de credenciales](SECURITY.md).
+
+### Suscripción y API de Kimi
+
+Abre **设置 → 我的订阅** en la aplicación de escritorio de Kimi y lee el uso desde **Kimi 订阅**. La página debe estar abierta y su texto accesible. En **Kimi API** introduce una API Key de la plataforma nacional. La cuota de suscripción y el saldo de API se muestran por separado.
 
 ### OpenAI: verificación de la clave y acceso al historial
 
@@ -86,7 +92,7 @@ Se buscan versiones estables al iniciar y cada seis horas tras una comprobación
 
 El funcionamiento normal y el guardado de claves no requieren permisos de administrador. Los datos se guardan en `%LOCALAPPDATA%\TokenMonitor` por defecto. En **数据目录** puedes elegir una carpeta vacía con permiso de escritura: se copian y verifican la configuración, las credenciales y el historial antes de cambiar de ubicación. La carpeta original se conserva como copia de seguridad.
 
-- Las claves de DeepSeek y OpenAI se cifran con Windows DPAPI para el usuario actual.
+- Las claves de DeepSeek, Kimi y OpenAI se cifran con Windows DPAPI para el usuario actual.
 - Las credenciales de Harness se leen cuando hacen falta y solo se envían al servicio oficial de DeepSeek.
 - Las consultas de uso no generan solicitudes de inferencia. Utilizar un restablecimiento oficial de cuota requiere una confirmación aparte.
 - La búsqueda de actualizaciones no envía a GitHub las credenciales, la configuración ni el uso de la cuenta.
@@ -110,7 +116,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-ui.ps1
 
 Los resultados se guardan en `build/`. Se utiliza el compilador C# de .NET Framework. Las pruebas sin conexión usan datos de ejemplo y no necesitan cuentas ni claves reales. Genera paquetes con `scripts/package.ps1` y verifica la instalación con `scripts/test-package.ps1 -Archive <ZIP>`.
 
-La imagen del README se genera al doble de resolución desde controles WPF nativos con `scripts/render-readme.ps1` y datos de ejemplo. Para activar las notificaciones, publica una versión estable con el ZIP ejecutable y márcala como Latest; una etiqueta Git por sí sola no basta.
+La imagen combina capturas de la aplicación con datos de ejemplo. Para activar las notificaciones, publica una versión estable con el ZIP ejecutable y márcala como Latest; una etiqueta Git por sí sola no basta.
 
 </details>
 
@@ -118,4 +124,4 @@ La imagen del README se genera al doble de resolución desde controles WPF nativ
 
 [MIT License](LICENSE) · Copyright (c) 2026 Ricki0613
 
-Proyecto independiente, sin afiliación oficial con OpenAI ni DeepSeek.
+Proyecto independiente, sin afiliación oficial con OpenAI, DeepSeek ni Moonshot AI.
