@@ -22,6 +22,11 @@ namespace TokenMonitor {
                 checks["brand_exact_"+theme]=((SolidColorBrush)app.Resources["GreenBrush"]).Color==UI.Brush(Brand.Mint).Color
                     &&((SolidColorBrush)app.Resources["BlueBrush"]).Color==UI.Brush(Brand.Violet).Color;
             }
+            var tracker=new AlertTracker();
+            checks["alert_boundaries"]=AlertTracker.Quota(20)==0&&AlertTracker.Quota(19.9)==1&&AlertTracker.Quota(10)==1&&AlertTracker.Quota(9.9)==2&&AlertTracker.Quota(5)==2&&AlertTracker.Quota(4.9)==3&&AlertTracker.Quota(null)==0;
+            checks["alert_crossings"]=tracker.Changed("q",1)&&!tracker.Changed("q",1)&&tracker.Changed("q",2)&&!tracker.Changed("q",0)&&tracker.Changed("q",1);
+            checks["balance_threshold"]=AlertTracker.Balance(9,10)==1&&AlertTracker.Balance(10,10)==0&&AlertTracker.Balance(null,10)==0&&AlertTracker.Balance(0,null)==0;
+            app.Gpt.SetAlert("额度不足");app.Gpt.Show();await app.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);UI.SaveImage(app.Gpt,Path.Combine(folder,"alert-example.png"));app.Gpt.SetAlert(null);
             app.Main.GptSwitch.IsChecked=true;app.SetOrbMode(false);
             DoubleClick(app.Gpt);
             checks["gpt_double_click_to_orb"]=app.Orb.IsVisible&&!app.Gpt.IsVisible&&app.Prefs.OrbMode;
@@ -52,7 +57,7 @@ namespace TokenMonitor {
                 app.Main.ShowOverview();app.Main.FitHeight();
                 await app.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
                 UI.SaveImage(app.Main,Path.Combine(folder,"fitted-home-"+size+".png"));
-                foreach(string page in new[]{"外观设置","ChatGPT 连接","DeepSeek API","Kimi 订阅","Kimi API","OpenAI API","数据目录","关于软件"}) {
+                foreach(string page in new[]{"外观设置","提醒设置","ChatGPT 连接","DeepSeek API","Kimi 订阅","Kimi API","OpenAI API","数据目录","关于软件"}) {
                     app.Main.OpenSettings(page);
                     await app.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
                     app.Main.UpdateLayout();

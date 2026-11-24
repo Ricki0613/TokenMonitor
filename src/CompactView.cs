@@ -13,6 +13,7 @@ namespace TokenMonitor {
         readonly Button refresh;
         readonly int service;
         bool pending;
+        readonly TextBlock warning=UI.Text("⚠ 额度不足",11,"#B77436",true);
         public Action SwitchDisplay;
         readonly Func<Task> sync;
         public CompactView(string title,int service,Func<Task> sync,Action hide)
@@ -40,6 +41,7 @@ namespace TokenMonitor {
             arrow.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty,"MutedBrush");
             refresh.Content=arrow;
             AutomationProperties.SetName(refresh,"刷新"+title);
+            warning.Visibility=Visibility.Collapsed;TitleButtons.Children.Add(warning);
             TitleButtons.Children.Add(refresh);
             Body.Children.Add(metrics);
             Render(null,null,false);
@@ -59,6 +61,7 @@ namespace TokenMonitor {
             UpdateStatus(data,error,loading);
             FitHeight();
         }
+        public void SetAlert(string message){warning.Text=message==null?"": "⚠ "+message;warning.Visibility=message==null?Visibility.Collapsed:Visibility.Visible;FitHeight();}
         public void UpdateStatus(object data,string error,bool loading) {
             metrics.Opacity=error==null?1:0.72;
             metrics.ToolTip=error==null?null:(data==null?"":"上次读取 · ")+error;

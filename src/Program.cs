@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("4.1.0.0")]
-[assembly: AssemblyFileVersion("4.1.0.0")]
-[assembly: AssemblyInformationalVersion("4.1.0")]
+[assembly: AssemblyVersion("4.1.1.0")]
+[assembly: AssemblyFileVersion("4.1.1.0")]
+[assembly: AssemblyInformationalVersion("4.1.1")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -50,6 +50,7 @@ namespace TokenMonitor {
         DispatcherTimer timer;
         DispatcherTimer saveTimer;
         Forms.NotifyIcon tray;
+        readonly AlertTracker alertTracker=new AlertTracker();
         readonly bool smoke;
         readonly string smokeFolder;
         readonly bool offline;
@@ -75,9 +76,9 @@ namespace TokenMonitor {
             KimiApiWindow=new CompactView("Kimi API",4,()=>UpdateKBalance(),()=>SetKimiVisible(false,true));
             foreach(var floating in new[]{Gpt,Deep,OpenAi,KimiWindow,KimiApiWindow})floating.ConfigureMenu(this);
             Gpt.SwitchDisplay=()=>SetOrbMode(true);KimiWindow.SwitchDisplay=()=>SetKimiOrbMode(true);
-            ApplyFloatOpacity(Prefs.FloatOpacity);
             Orb=new OrbView(this);Orb.Place();Orb.LocationChanged+=(s,a)=>QueueSave();
             KimiOrb=new OrbView(this,true);KimiOrb.Place();KimiOrb.LocationChanged+=(s,a)=>QueueSave();
+            ApplyFloatOpacity(Prefs.FloatOpacity);
             KimiWindow.GeometryChanged+=QueueSave;KimiApiWindow.GeometryChanged+=QueueSave;
             KimiWindow.LocationChanged+=(s,a)=>QueueSave();KimiApiWindow.LocationChanged+=(s,a)=>QueueSave();
             OpenAi.RestoreSize(Prefs.OpenAiWidth,Prefs.OpenAiHeight,Prefs.OpenAiAutoHeight);
@@ -122,6 +123,8 @@ namespace TokenMonitor {
             Prefs.FloatOpacity=Math.Max(0,Math.Min(100,percent));
             foreach(var window in new[]{Gpt,Deep,OpenAi,KimiWindow,KimiApiWindow})
                 window.Opacity=0.45+0.55*Prefs.FloatOpacity/100.0;
+            if(Orb!=null)Orb.Opacity=0.45+0.55*Prefs.FloatOpacity/100.0;
+            if(KimiOrb!=null)KimiOrb.Opacity=0.45+0.55*Prefs.FloatOpacity/100.0;
             QueueSave();
         }
         void QueueSave() {if(smoke||quitting||saveTimer==null)return;saveTimer.Stop();saveTimer.Start();}
@@ -167,10 +170,12 @@ namespace TokenMonitor {
         internal void DisplayKimiUsage(QuotaWindow reading,string status){
             if(reading!=null)lastKimiQuota=reading;
             KimiWindow.Render(lastKimiQuota,reading==null?status:null,false);
+            if(reading!=null){int level=AlertTracker.Quota(reading.Remaining);KimiWindow.SetAlert(level>0?"额度不足":null);if(reading.Remaining.HasValue)NotifyAlert("kimi-quota",level,"Kimi 订阅额度提醒","剩余额度 "+reading.Remaining.Value.ToString("0.##")+"%");}
             KimiOrb.RenderKimi(lastKimiQuota,reading==null?status:null);
         }
         internal void DisplayKimiBalance(KimiBalance reading){
             KimiApiWindow.Render(reading,reading.Amount.HasValue?null:reading.Status,false);
+            if(reading.Amount.HasValue){int level=AlertTracker.Balance(reading.Amount,Prefs.KimiCnyAlert);KimiApiWindow.SetAlert(level>0?"余额不足":null);NotifyAlert("kimi-cny",level,"Kimi API 余额提醒","当前余额 ¥"+reading.Amount.Value.ToString("0.00"));}
         }
         public void SetDeep(bool show) {Prefs.Deep=show;if(show){Prefs.MonitorDeep=true;Deep.Show();RefreshDeep(true);}else Deep.Hide();Save();UpdateLabels();}
         public void ResetDeepCooldown() {deepCooldown=DateTimeOffset.MinValue;nextDeep=DateTimeOffset.MinValue;deepFailures=0;}
@@ -291,9 +296,20 @@ namespace TokenMonitor {
             catch(Exception e) {DeepError=ErrorMessage(e,false);deepFailures++;nextDeep=DateTimeOffset.UtcNow.AddSeconds(Backoff(e,deepFailures,Prefs.Interval));var p=e as ProviderException;if(p!=null&&p.Cooldown>0)deepCooldown=nextDeep;}
             finally {if(requestedSource!=Prefs.DeepSource){DeepData=null;DeepError=null;ResetDeepCooldown();}deepBusy=false;if(!quitting){Deep.Render(DeepData,DeepError,false);UpdateLabels();}}
         }
+        public void ShowAlertExample() {if(tray!=null)tray.ShowBalloonTip(6000,"Token Monitor 提醒示例","ChatGPT 5 小时额度剩余 18%（示例数据）",System.Windows.Forms.ToolTipIcon.Warning);}
+        void NotifyAlert(string key,int level,string title,string message) {
+            bool changed=alertTracker.Changed(key,level);
+            if(changed&&Prefs.AlertNotifications&&tray!=null&&!smoke)tray.ShowBalloonTip(6000,title,message,System.Windows.Forms.ToolTipIcon.Warning);
+        }
+        void RefreshAlerts() {
+            if(GptError==null&&GptData!=null){var group=GptData.Groups.FirstOrDefault(x=>x.Id=="codex");bool low=false;
+                if(group!=null)foreach(var q in group.Windows){if(!q.Remaining.HasValue)continue;int level=AlertTracker.Quota(q.Remaining);low|=level>0;NotifyAlert("gpt-"+q.Label,level,"ChatGPT 额度提醒",q.Label+"剩余 "+q.Remaining.Value.ToString("0.##")+"%");}Gpt.SetAlert(low?"额度不足":null);}
+            if(DeepError==null&&DeepData!=null){bool low=false;foreach(var b in DeepData.Balances){double? t=b.Currency=="CNY"?Prefs.DeepCnyAlert:b.Currency=="USD"?Prefs.DeepUsdAlert:null;int level=AlertTracker.Balance((double)b.Total,t);low|=level>0;NotifyAlert("deep-"+Prefs.DeepSource+"-"+b.Currency,level,"DeepSeek 余额提醒",b.Currency+" 余额 "+b.Format(b.Total));}Deep.SetAlert(low?"余额不足":null);}
+        }
         public void UpdateLabels() {
             if(Main==null||Gpt==null||Deep==null||OpenAi==null)return;
             Orb.Render(GptData,GptError,gptBusy);
+            RefreshAlerts();
             bool retry=!string.IsNullOrEmpty(Prefs.PendingResetKey);
             string count=GptData!=null&&GptData.ResetCredits.HasValue?GptData.ResetCredits.Value.ToString():"—";
             Main.ResetQuota.Content=retry?"确认上次重置":"重置 ("+count+")";
@@ -333,7 +349,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v4.1.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v4.1.1";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -380,15 +396,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v4.1.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v4.1.1");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v4.1.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v4.1.1"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v4.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v4.1.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v4.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v4.1.1")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");

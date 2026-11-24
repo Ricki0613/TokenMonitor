@@ -109,6 +109,8 @@ namespace TokenMonitor {
         public double KimiOrbX=-1,KimiOrbY=-1,KimiX=-1,KimiY=-1,KimiApiX=-1,KimiApiY=-1;
         public double KimiWidth=230,KimiApiWidth=230;
         public int OrbScale=100, FloatOpacity=100;
+        public bool EdgeSnap=false, AlertNotifications=true;
+        public double? DeepCnyAlert,DeepUsdAlert,KimiCnyAlert;
         public double OrbX=-1,OrbY=-1;
         public string DeepSource="api";
         public string Appearance="system", PendingResetKey;

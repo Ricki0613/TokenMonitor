@@ -67,7 +67,7 @@ namespace TokenMonitor {
             AddMenu(menu,"立即刷新",async()=>{if(kimi)await app.UpdateKUsage();else await app.RefreshGpt(true);});
             AddMenu(menu,"隐藏",HideService);ContextMenu=menu;
             PreviewMouseDoubleClick+=(s,e)=>{if(e.ChangedButton==MouseButton.Left){e.Handled=true;ShowDetails();}};
-            MouseLeftButtonDown+=(s,e)=>{if(e.Handled)return;try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
+            MouseLeftButtonDown+=(s,e)=>{if(e.Handled)return;try {DragMove();Clamp();if(app.Prefs.EdgeSnap)EdgeSnap.Apply(this);app.Save();}catch(InvalidOperationException){}};
             KeyDown+=(s,e)=>{if(e.Key==Key.Enter)ShowDetails();};
             Closing+=(s,e)=>{if(!Exiting){e.Cancel=true;HideService();}};
             AutomationProperties.SetName(this,kimi?"Kimi 订阅剩余额度悬浮球":"ChatGPT 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");
@@ -76,7 +76,7 @@ namespace TokenMonitor {
         void HideService(){if(kimi)app.SetKimiVisible(false,false);else app.Main.GptSwitch.IsChecked=false;}
         internal void RenderKimi(QuotaWindow window,string error){
             Draw(shortArc,ShortText,window,270,359.99);
-            state.Text=error==null?"":"!";
+            state.Text=error!=null||window!=null&&AlertTracker.Quota(window.Remaining)>0?"!":"";
             HoverShort.Text="重置 "+ResetTime(window);
             HoverHint.Text=error??"双击详情 · 右键菜单";
         }
@@ -114,7 +114,7 @@ namespace TokenMonitor {
             var shortWindow=group==null?null:group.Windows.FirstOrDefault(x=>x.Label=="5 小时额度");
             var week=group==null?null:group.Windows.FirstOrDefault(x=>x.Label=="每周额度");
             Draw(shortArc,ShortText,shortWindow,214,112);Draw(longArc,LongText,week,340,220);
-            state.Text=error!=null?"!":busy?"·":"";
+            state.Text=error!=null||shortWindow!=null&&AlertTracker.Quota(shortWindow.Remaining)>0||week!=null&&AlertTracker.Quota(week.Remaining)>0?"!":busy?"·":"";
             shortArc.Opacity=longArc.Opacity=error==null?1:0.35;
             string shortReset=ResetTime(shortWindow),weekReset=ResetTime(week);
             HoverShort.Text=shortReset+"  (5h)";HoverWeek.Text=weekReset+"  (week)";

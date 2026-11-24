@@ -24,6 +24,8 @@ namespace TokenMonitor {
             checks["appearance_changes_without_save"]=Appearance.Dark&&app.Prefs.Appearance=="dark"&&Preferences.Load().Appearance=="dark";
             checks["orb_size_saves_immediately"]=app.Prefs.OrbScale==150&&Preferences.Load().OrbScale==150&&Math.Abs(app.Orb.Width-114)<1;
             interval.SelectedIndex=2;view.UpdateLayout();checks["interval_applies_immediately"]=app.Prefs.Interval==60&&app.Main.Interval.SelectedIndex==2;interval.SelectedIndex=1;
+            var opacity=nodes.OfType<Slider>().First(x=>AutomationProperties.GetName(x)=="悬浮窗与悬浮球不透明度");opacity.Value=40;checks["opacity_all_float_surfaces"]=new Window[]{app.Gpt,app.Deep,app.OpenAi,app.KimiWindow,app.KimiApiWindow,app.Orb,app.KimiOrb}.All(w=>Math.Abs(w.Opacity-0.67)<0.001);opacity.Value=100;
+            view.SelectPage("提醒设置");var amount=nodes.OfType<AmountBox>().First();amount.Text="12.5";amount.Text="12.5abc";checks["amount_rejects_invalid_input"]=amount.Text=="12.5"&&!AmountBox.Valid("1.2.3")&&!AmountBox.Valid("-1")&&!AmountBox.Valid("1e3")&&AmountBox.Valid("0.25")&&AmountBox.Valid("");amount.Text="";checks["alerts_separate_page"]=view.SelectedPage=="提醒设置"&&nodes.OfType<CheckBox>().Any(x=>Equals(x.Content,"发送低额度系统通知")&&x.IsVisible);view.SelectPage("外观设置");
             var font=nodes.OfType<ComboBox>().First(x=>AutomationProperties.GetName(x)=="界面字号");font.SelectedIndex=2;checks["font_size_persisted"]=Preferences.Load().FontSize=="large";font.SelectedIndex=1;
             checks["appearance_has_no_save_button"]=save.Visibility==Visibility.Collapsed;
             checks["appearance_does_not_commit_pending_key"]=before.SequenceEqual(File.ReadAllBytes(Paths.OpenAiKey));
