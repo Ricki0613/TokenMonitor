@@ -69,19 +69,23 @@ namespace TokenMonitor {
             if(secondValue!=null)group.Children.Add(UI.Row(UI.Hint(second),UI.Hint(secondValue)));
             metrics.Children.Add(group);
         }
+        Grid MetricRow(TextBlock caption,TextBlock value) {
+            if(compact){caption.TextWrapping=TextWrapping.NoWrap;value.TextWrapping=TextWrapping.NoWrap;caption.Margin=new Thickness(0,0,8,0);}
+            return UI.Row(caption,value);
+        }
         void AddQuota(QuotaWindow w) {
             var block=new StackPanel {Margin=new Thickness(0,0,0,5)};
-            block.Children.Add(UI.Row(UI.Hint(w.Label),Value(w.Remaining.HasValue?w.Remaining.Value.ToString("0.##")+"%":"—")));
+            block.Children.Add(MetricRow(UI.Hint(w.Label),Value(w.Remaining.HasValue?w.Remaining.Value.ToString("0.##")+"%":"—")));
             var track=new Grid();tracks.Add(track);StyleTrack(track);
             var background=new Border {CornerRadius=new CornerRadius(3)};background.SetResourceReference(BackgroundProperty,"TrackBrush");track.Children.Add(background);
-            var bar=new Border {CornerRadius=new CornerRadius(3),HorizontalAlignment=HorizontalAlignment.Left};bar.SetResourceReference(BackgroundProperty,"GreenBrush");
+            var bar=new Border {CornerRadius=new CornerRadius(3),HorizontalAlignment=HorizontalAlignment.Left};bar.SetResourceReference(BackgroundProperty,w.Label=="每周额度"?"BlueBrush":"GreenBrush");
             double remaining=Math.Max(0,Math.Min(100,w.Remaining.GetValueOrDefault()));track.SizeChanged+=(sender,args)=>bar.Width=track.ActualWidth*remaining/100;track.Children.Add(bar);block.Children.Add(track);
             block.Children.Add(UI.Hint(w.Reset.HasValue?"重置 "+UI.China(w.Reset.Value).ToString("MM-dd HH:mm")+(compact?"":" · 北京时间"):"重置时间待同步"));metrics.Children.Add(block);
         }
         void AddMetric(string label,string value) {
             var caption=UI.Hint(label);
             caption.VerticalAlignment=VerticalAlignment.Center;
-            var row=UI.Row(caption,Value(value));
+            var row=MetricRow(caption,Value(value));
             row.Margin=new Thickness(0,0,0,5);
             metrics.Children.Add(row);
         }

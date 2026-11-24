@@ -5,11 +5,11 @@
 <p align="center"><strong>Cuotas, saldos y uso de API de un vistazo.</strong><br>Un monitor de escritorio para Windows compatible con Codex / ChatGPT Work, DeepSeek, suscripción de Kimi, Kimi API y OpenAI API.</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.0.0-10A37F" alt="Version 4.0.0"></a>
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.1.0-10A37F" alt="Version 4.1.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v4.0.0/TokenMonitor-v4.0.0-windows-x64.zip"><strong>Descargar para Windows</strong></a> ·
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v4.1.0/TokenMonitor-v4.1.0-windows-x64.zip"><strong>Descargar para Windows</strong></a> ·
   <a href="#inicio-rápido">Inicio rápido</a> ·
   <a href="docs/USER_GUIDE.zh-CN.md">Guía de uso (chino)</a>
 </p>
@@ -26,8 +26,8 @@
 
 Consulta cinco tarjetas seleccionables en un solo panel mientras programas o utilizas modelos. La disposición se adapta al número de tarjetas.
 
-- **Esferas flotantes**: ChatGPT muestra las cuotas restantes de 5 horas y semanal, y Kimi muestra la cuota restante de la suscripción. Puedes arrastrarlas, abrir los detalles con doble clic y elegir entre cinco tamaños.
-- **Ventanas flotantes independientes**: muestra, oculta, mueve y redimensiona cada servicio por separado. Los servicios conectados siguen actualizándose aunque ocultes sus ventanas.
+- **Esferas flotantes**: ChatGPT muestra las cuotas restantes de 5 horas y semanal, y Kimi muestra la cuota restante de la suscripción. Puedes arrastrarlas, alternar entre esfera y ventana con doble clic y elegir entre cinco tamaños.
+- **Ventanas flotantes independientes**: muestra, oculta y mueve cada servicio por separado. Las ventanas se ajustan al contenido en los tres tamaños de letra y no se redimensionan manualmente. Los servicios conectados siguen actualizándose aunque ocultes sus ventanas.
 - **Historial local**: gráficos de 7 y 30 días con conservación de 90 días. Los datos que no se han recogido no se inventan.
 - **Aspecto personalizable**: tema claro, oscuro o del sistema, tres tamaños de letra, tarjetas seleccionables y opacidad ajustable para las ventanas.
 - **Actualización y restauración**: descarga y verifica el paquete desde la aplicación, confirma el reinicio y conserva la versión anterior para poder volver a ella.
@@ -48,7 +48,7 @@ Los datos de ChatGPT cubren la cuota de Codex / ChatGPT Work, no todos los lími
 
 **Requisitos: Windows 10 / 11 x64 y .NET Framework 4.8. La interfaz de la aplicación está actualmente en chino.** No necesitas Python, Node ni el SDK de .NET para ejecutarla.
 
-1. [Descarga el ZIP para Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v4.0.0/TokenMonitor-v4.0.0-windows-x64.zip) y extrae todo su contenido. Elige el paquete ejecutable, no el archivo `Source code` generado por GitHub.
+1. [Descarga el ZIP para Windows](https://github.com/Ricki0613/TokenMonitor/releases/download/v4.1.0/TokenMonitor-v4.1.0-windows-x64.zip) y extrae todo su contenido. Elige el paquete ejecutable, no el archivo `Source code` generado por GitHub.
 2. Ejecuta **Install.cmd** y elige las carpetas del programa y de datos. El instalador crea accesos directos en el escritorio y el menú Inicio. También puedes ejecutar directamente `TokenMonitor.exe` tras extraerlo.
 3. Conecta los servicios que necesites desde **连接设置** (ajustes de conexión) en cada tarjeta y activa sus ventanas o la esfera.
 

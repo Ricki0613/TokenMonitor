@@ -15,9 +15,9 @@ using Microsoft.Win32;
 using System.Reflection;
 using Forms=System.Windows.Forms;
 
-[assembly: AssemblyVersion("4.0.0.0")]
-[assembly: AssemblyFileVersion("4.0.0.0")]
-[assembly: AssemblyInformationalVersion("4.0.0")]
+[assembly: AssemblyVersion("4.1.0.0")]
+[assembly: AssemblyFileVersion("4.1.0.0")]
+[assembly: AssemblyInformationalVersion("4.1.0")]
 
 namespace TokenMonitor {
     public sealed partial class MonitorApp : Application {
@@ -73,7 +73,8 @@ namespace TokenMonitor {
             OpenAi=new CompactView("OpenAI API",2,()=>RefreshOpenAi(true),()=>Main.OpenAiSwitch.IsChecked=false);
             KimiWindow=new CompactView("Kimi 订阅",3,()=>UpdateKUsage(),()=>SetKimiVisible(false,false));
             KimiApiWindow=new CompactView("Kimi API",4,()=>UpdateKBalance(),()=>SetKimiVisible(false,true));
-            KimiWindow.Width=Prefs.KimiWidth;KimiApiWindow.Width=Prefs.KimiApiWidth;
+            foreach(var floating in new[]{Gpt,Deep,OpenAi,KimiWindow,KimiApiWindow})floating.ConfigureMenu(this);
+            Gpt.SwitchDisplay=()=>SetOrbMode(true);KimiWindow.SwitchDisplay=()=>SetKimiOrbMode(true);
             ApplyFloatOpacity(Prefs.FloatOpacity);
             Orb=new OrbView(this);Orb.Place();Orb.LocationChanged+=(s,a)=>QueueSave();
             KimiOrb=new OrbView(this,true);KimiOrb.Place();KimiOrb.LocationChanged+=(s,a)=>QueueSave();
@@ -332,7 +333,7 @@ namespace TokenMonitor {
                 while(gptBusy||deepBusy||openAiBusy) {if(quitting)throw new OperationCanceledException();await Task.Delay(100);}
                 if(quitting)throw new OperationCanceledException();
                 Save();StorageLocation.Relocate(destination,Prefs);
-                Main.Subtitle.Text="用量，随时可见  ·  v4.0.0";
+                Main.Subtitle.Text="用量，随时可见  ·  v4.1.0";
             } finally {changingStorage=false;}
         }
         public void Quit() {
@@ -379,15 +380,15 @@ namespace TokenMonitor {
             }
             if(offline) {
                 checks["updates_disabled_in_offline_tests"]=updateTimer==null;
-                Main.RenderUpdate(null,"当前已是最新版本 v4.0.0");
+                Main.RenderUpdate(null,"当前已是最新版本 v4.1.0");
                 checks["updates_latest_state"]=Main.UpdateStatus.Text.Contains("最新版本")&&Main.DownloadUpdate.Content.ToString()=="发布页 ↗";
-                var demo=UpdateClient.Parse(UpdateTests.Release("v4.0.0"));
+                var demo=UpdateClient.Parse(UpdateTests.Release("v4.1.0"));
                 Main.RenderUpdate(demo,null);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
-                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v4.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_available_state"]=Main.UpdateStatus.Text.Contains("v4.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 checks["updates_available_fits"]=Main.Scroll.ExtentHeight<=Main.Scroll.ViewportHeight+0.5;
                 UI.SaveImage(Main,Path.Combine(smokeFolder,"update-available.png"));
                 Main.RenderUpdate(demo,"无法检查更新，可稍后重试或打开发布页。");
-                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v4.0.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
+                checks["updates_failure_preserves_notice"]=Main.UpdateStatus.Text.Contains("v4.1.0")&&Main.DownloadUpdate.Content.ToString()=="下载更新 ↗";
                 Main.RenderUpdate(null,"检查更新超时，可稍后重试或打开发布页。");
                 checks["updates_failure_is_not_latest"]=!Main.UpdateStatus.Text.Contains("最新版本");
                 Main.RenderUpdate(null,"启动时及每 6 小时自动检查更新");
@@ -461,7 +462,7 @@ namespace TokenMonitor {
                 }
                 Gpt.Width=300;Gpt.ResizeBy(0,1,0,-1000);await Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);Gpt.UpdateLayout();
                 checks["minimum_shows_full_content"]=Gpt.Scroll.ExtentHeight<=Gpt.Scroll.ViewportHeight+1;
-                checks["resize_keeps_minimum"]=Gpt.Height==Gpt.MinHeight&&!Gpt.AutoHeight;
+                checks["resize_keeps_minimum"]=Gpt.Height==Gpt.MinHeight&&Gpt.AutoHeight;
                 UI.SaveImage(Gpt,Path.Combine(smokeFolder,"gpt-short.png"));Gpt.FitToContent();
                 checks["fit_restores_auto_height"]=Gpt.AutoHeight;
                 var original=GptData.ResetCredits;GptData.ResetCredits=0;UpdateLabels();checks["reset_disabled_without_credit"]=!Main.ResetQuota.IsEnabled;

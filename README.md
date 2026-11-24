@@ -5,11 +5,11 @@
 <p align="center"><strong>额度、余额、API 用量，一眼可见。</strong><br>为 Windows 桌面打造的用量监控工具，支持 ChatGPT、DeepSeek、Kimi 订阅、Kimi API 与 OpenAI API。</p>
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%2F%2011%20x64-0078D4" alt="Windows 10 / 11 x64">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.0.0-10A37F" alt="Version 4.0.0"></a>
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/latest"><img src="https://img.shields.io/badge/version-4.1.0-10A37F" alt="Version 4.1.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
 </p>
 <p align="center">
-  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v4.0.0/TokenMonitor-v4.0.0-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
+  <a href="https://github.com/Ricki0613/TokenMonitor/releases/download/v4.1.0/TokenMonitor-v4.1.0-windows-x64.zip"><strong>下载 Windows 版</strong></a> ·
   <a href="#快速开始">快速开始</a> ·
   <a href="docs/USER_GUIDE.zh-CN.md">使用指南</a>
 </p>
@@ -26,8 +26,8 @@
 
 写代码、调用模型时，不必来回打开用量页面。Token Monitor 在主页汇集五个板块，也能把你关心的数据留在桌面上。主页可选择展示的板块，并根据数量自动调整布局。
 
-- **悬浮球**：ChatGPT 显示 5 小时和每周剩余额度，Kimi 订阅显示剩余额度；支持拖动、双击展开浮窗和五档大小，颜色随主题变化。
-- **独立浮窗**：五个板块可各自开关，支持拖动、调整尺寸和不透明度。隐藏浮窗后，已连接服务继续刷新。
+- **悬浮球**：ChatGPT 显示 5 小时和每周剩余额度，Kimi 订阅显示剩余额度；支持拖动、双击与浮窗互相切换和五档大小，强调色与 Logo 保持一致。
+- **独立浮窗**：五个板块可各自开关，支持拖动和调整不透明度；按小／中／大字号自动贴合内容，不支持手动拉伸。隐藏浮窗后，已连接服务继续刷新。
 - **本地历史趋势**：查看近 7 天／30 天变化，保留 90 天记录；缺失数据不补造。
 - **按习惯显示**：浅色、深色、随系统主题，小／中／大字号，常驻左侧导航。
 - **更新与回退**：应用内下载安装包，校验后确认重启；保留上一版，支持回退。
@@ -48,7 +48,7 @@ ChatGPT 数据不涵盖普通聊天中所有模型的消息限额。OpenAI 统�
 
 **运行环境：Windows 10 / 11 x64、.NET Framework 4.8。** 运行时无需 Python、Node 或 .NET SDK。
 
-1. [下载 Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v4.0.0/TokenMonitor-v4.0.0-windows-x64.zip)，右键选择 **全部解压**。请下载运行包，而非 GitHub 自动生成的 `Source code`。
+1. [下载 Windows ZIP](https://github.com/Ricki0613/TokenMonitor/releases/download/v4.1.0/TokenMonitor-v4.1.0-windows-x64.zip)，右键选择 **全部解压**。请下载运行包，而非 GitHub 自动生成的 `Source code`。
 2. 运行 **Install.cmd**，选择程序与数据目录；安装助手会创建桌面和开始菜单快捷方式。也可直接运行解压后的 `TokenMonitor.exe`。
 3. 从卡片的 **连接设置** 接入需要的服务，再按需打开浮窗或悬浮球。
 

@@ -10,10 +10,11 @@ using System.Windows.Shapes;
 namespace TokenMonitor {
     // A split token monogram: two offset facets joined by a pulse, shared by all surfaces.
     public static class Brand {
+        public const string Mint="#5EEAD4", Violet="#A99CFF", Navy="#171D2B";
         public static FrameworkElement Mark(double size) {
             var canvas=new Canvas {Width=40,Height=40};
-            canvas.Children.Add(new Path {Data=Geometry.Parse("M 5,9 L 19,2 19,13 13,16 13,27 5,31 Z"),Fill=UI.Brush("#5EEAD4")});
-            canvas.Children.Add(new Path {Data=Geometry.Parse("M 21,9 L 35,2 35,27 21,35 21,24 27,21 27,13 21,16 Z"),Fill=UI.Brush("#A99CFF")});
+            canvas.Children.Add(new Path {Data=Geometry.Parse("M 5,9 L 19,2 19,13 13,16 13,27 5,31 Z"),Fill=UI.Brush(Mint)});
+            canvas.Children.Add(new Path {Data=Geometry.Parse("M 21,9 L 35,2 35,27 21,35 21,24 27,21 27,13 21,16 Z"),Fill=UI.Brush(Violet)});
             return new Viewbox {Width=size,Height=size,Child=canvas};
         }
     }
@@ -62,10 +63,11 @@ namespace TokenMonitor {
             surface.AppendChild(new FrameworkElementFactory(typeof(ContentPresenter)));template.VisualTree=surface;hoverTip.Template=template;
             ToolTip=hoverTip;ToolTipService.SetShowDuration(this,20000);
             var menu=new ContextMenu();
-            AddMenu(menu,"展开额度详情",ShowDetails);AddMenu(menu,"打开控制中心",app.ShowControl);
-            AddMenu(menu,"立即刷新",async()=>{if(kimi)await app.UpdateKUsage();else await app.RefreshGpt(true);});AddMenu(menu,"设置悬浮球大小",()=>{app.ShowControl();app.Main.OpenSettings("外观设置");});
-            AddMenu(menu,"隐藏悬浮球",HideService);ContextMenu=menu;
-            MouseLeftButtonDown+=(s,e)=>{if(e.ClickCount==2){ShowDetails();return;}try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
+            AddMenu(menu,"切换为悬浮窗",ShowDetails);AddMenu(menu,"控制中心",app.ShowControl);
+            AddMenu(menu,"立即刷新",async()=>{if(kimi)await app.UpdateKUsage();else await app.RefreshGpt(true);});
+            AddMenu(menu,"隐藏",HideService);ContextMenu=menu;
+            PreviewMouseDoubleClick+=(s,e)=>{if(e.ChangedButton==MouseButton.Left){e.Handled=true;ShowDetails();}};
+            MouseLeftButtonDown+=(s,e)=>{if(e.Handled)return;try {DragMove();Clamp();app.Save();}catch(InvalidOperationException){}};
             KeyDown+=(s,e)=>{if(e.Key==Key.Enter)ShowDetails();};
             Closing+=(s,e)=>{if(!Exiting){e.Cancel=true;HideService();}};
             AutomationProperties.SetName(this,kimi?"Kimi 订阅剩余额度悬浮球":"ChatGPT 悬浮球，上方 5 小时、下方每周剩余额度；双击展开详情");

@@ -17,7 +17,7 @@ using System.Windows.Threading;
 
 namespace TokenMonitor {
     public static class UI {
-        public const string Green="#10A37F", Blue="#4D6BFE", Muted="#7B838D", Ink="#202526";
+        public const string Green=Brand.Mint, Blue=Brand.Violet, Muted="#7B838D", Ink="#202526";
         public static SolidColorBrush Brush(string hex) { return (SolidColorBrush)new BrushConverter().ConvertFromString(hex); }
         public static TextBlock Text(string s,double size=13,string color=Ink,bool bold=false) {
             if(color==Muted&&size<=13)size=11;
@@ -63,13 +63,14 @@ namespace TokenMonitor {
         public bool Exiting;
         public bool AutoHeight=true;
         public event Action GeometryChanged;
-        bool fitQueued,resizing;
+        bool fitQueued;
+        readonly bool floating;
         readonly Border titleArea;
         readonly bool formal;
         public Shell(string title,string sub,string accent,double width,double height,bool floating,bool formal=false) {
-            this.formal=formal;
+            this.formal=formal;this.floating=floating;
             Title=title=="Token Monitor"?title:title+" · Token Monitor";Width=width;Height=height;Topmost=floating;ShowInTaskbar=!floating;
-            WindowStyle=WindowStyle.None;ResizeMode=formal?ResizeMode.CanMinimize:floating?ResizeMode.CanResize:ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;
+            WindowStyle=WindowStyle.None;ResizeMode=formal?ResizeMode.CanMinimize:ResizeMode.NoResize;AllowsTransparency=true;Background=Brushes.Transparent;
             MinWidth=floating?180:width;MinHeight=floating?48:100;
             FontFamily=(FontFamily)Application.Current.FindResource("InterfaceFont");
             UseLayoutRounding=true;SnapsToDevicePixels=true;
@@ -114,10 +115,6 @@ namespace TokenMonitor {
             Body.SizeChanged+=(s,e)=>QueueFit();
             SizeChanged+=(s,e)=>{if(e.WidthChanged)QueueFit();if(GeometryChanged!=null)GeometryChanged();};
             ContentRendered+=(s,e)=>QueueFit();
-            if(floating) {
-                AddResizeHandle(root,-1,0);AddResizeHandle(root,1,0);AddResizeHandle(root,0,-1);AddResizeHandle(root,0,1);
-                AddResizeHandle(root,-1,-1);AddResizeHandle(root,1,-1);AddResizeHandle(root,-1,1);AddResizeHandle(root,1,1);
-            }
             Closing+=(s,e)=>{ if(!Exiting) {e.Cancel=true;if(CloseAction!=null)CloseAction();else Hide();} };
         }
         static void SetCaptionIcon(Button button,string geometry,string label) {
@@ -142,46 +139,29 @@ namespace TokenMonitor {
             };
             cards.LayoutUpdated+=update;
         }
-        void AddResizeHandle(Grid root,int x,int y) {
-            var thumb=new Thumb { Width=x==0?double.NaN:10,Height=y==0?double.NaN:10,
-                HorizontalAlignment=x<0?HorizontalAlignment.Left:x>0?HorizontalAlignment.Right:HorizontalAlignment.Stretch,
-                VerticalAlignment=y<0?VerticalAlignment.Top:y>0?VerticalAlignment.Bottom:VerticalAlignment.Stretch,
-                Margin=new Thickness(x==0?24:8,y==0?24:8,x==0?24:8,y==0?24:8),
-                Cursor=x==0?Cursors.SizeNS:y==0?Cursors.SizeWE:x==y?Cursors.SizeNWSE:Cursors.SizeNESW,
-                Focusable=false,ToolTip="拖动调整大小" };
-            var template=new ControlTemplate(typeof(Thumb));var factory=new FrameworkElementFactory(typeof(Border));
-            factory.SetValue(Border.BackgroundProperty,Brushes.Transparent);template.VisualTree=factory;thumb.Template=template;
-            thumb.DragStarted+=(s,e)=>{resizing=true;if(y!=0)AutoHeight=false;};
-            thumb.DragDelta+=(s,e)=>ResizeBy(x,y,e.HorizontalChange,e.VerticalChange);
-            thumb.DragCompleted+=(s,e)=>{resizing=false;QueueFit();if(GeometryChanged!=null)GeometryChanged();};
-            root.Children.Add(thumb);
-        }
-        public void ResizeBy(int x,int y,double dx,double dy) {
-            var area=SystemParameters.WorkArea;
-            if(x!=0) {
-                double previous=Width;Width=Math.Max(MinWidth,Math.Min(Math.Max(MinWidth,area.Width),Width+x*dx));
-                if(x<0)Left+=previous-Width;
-            }
-            if(y!=0) {
-                AutoHeight=false;double previous=Height;Height=Math.Max(MinHeight,Math.Min(Math.Max(MinHeight,area.Height),Height+y*dy));
-                if(y<0)Top+=previous-Height;
-            }
-        }
+        public void ResizeBy(int x,int y,double dx,double dy) { FitHeight(); }
         public void RestoreSize(double width,double height,bool autoHeight) {
-            Width=Math.Min(width,Math.Max(MinWidth,SystemParameters.WorkArea.Width));
-            Height=Math.Min(height,Math.Max(MinHeight,SystemParameters.WorkArea.Height));AutoHeight=autoHeight;QueueFit();
+            AutoHeight=true;FitHeight();QueueFit();
         }
         public void FitToContent() {AutoHeight=true;FitHeight();QueueFit();if(GeometryChanged!=null)GeometryChanged();}
         void QueueFit() {
-            if(fitQueued||resizing)return;fitQueued=true;
-            Dispatcher.BeginInvoke(new Action(()=>{fitQueued=false;if(!resizing)FitHeight();}),DispatcherPriority.Loaded);
+            if(fitQueued)return;fitQueued=true;
+            Dispatcher.BeginInvoke(new Action(()=>{fitQueued=false;FitHeight();}),DispatcherPriority.Loaded);
         }
         static void ResetCardHeights(DependencyObject parent) {
             var cards=parent as CardPanel;if(cards!=null)cards.MinHeight=0;
             foreach(var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())ResetCardHeights(child);
         }
-        public void FitHeight() {
+        public virtual void FitHeight() {
             if(formal)return;
+            if(floating){
+                // Measure the actual text so each service uses only the width it needs.
+                Body.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+                titleArea.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+                double fitted=Math.Ceiling(Math.Max(FontSizing.CompactWidth,
+                    Math.Max(Body.DesiredSize.Width+Scroll.Padding.Left+Scroll.Padding.Right,titleArea.DesiredSize.Width+6)+8));
+                MinWidth=fitted;MaxWidth=fitted;Width=fitted;AutoHeight=true;
+            }
             ResetCardHeights(Body);
             Body.InvalidateMeasure();
             double frame=2*(Surface.Margin.Left+Surface.BorderThickness.Left);
@@ -191,7 +171,7 @@ namespace TokenMonitor {
             double needed=frame+titleArea.DesiredSize.Height+Body.DesiredSize.Height+Scroll.Padding.Top+Scroll.Padding.Bottom;
             double height=Math.Max(48,Math.Min(SystemParameters.WorkArea.Height,Math.Ceiling(needed)+1));
             MinHeight=height;
-            // Floating utilities never grow into an empty canvas; width still reflows cards.
+            // Fit each font size to its content; saved user sizes no longer override the compact layout.
             MaxHeight=Math.Min(SystemParameters.WorkArea.Height,height);
             if((AutoHeight||Height>MaxHeight)&&Math.Abs(Height-height)>0.5)Height=height;
         }
@@ -253,7 +233,7 @@ namespace TokenMonitor {
             for(int col=0;col<columns;col++)services.ColumnDefinitions.Add(new ColumnDefinition());
             int nextTile=0;
             for(int row=0;row<rows.Length;row++){
-                services.RowDefinitions.Add(new RowDefinition());
+                services.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
                 int span=columns/rows[row];
                 for(int col=0;col<rows[row];col++){
                     var tile=visible[nextTile++];
@@ -305,9 +285,9 @@ namespace TokenMonitor {
         }
         readonly DashboardCard gptCard,deepCard,openCard;
         public SettingsView SettingsPage {get;private set;}
-        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v4.0.0",UI.Green,1060,720,false,true) {
+        public MainView(MonitorApp app):base("Token Monitor","用量控制中心  /  v4.1.0",UI.Green,1060,720,false,true) {
             this.app=app;
-            ResizeMode=ResizeMode.CanMinimize;Width=Math.Min(1060,SystemParameters.WorkArea.Width);Height=Math.Min(720,SystemParameters.WorkArea.Height);MinWidth=Math.Min(760,Width);MinHeight=Math.Min(560,Height);
+            ResizeMode=ResizeMode.CanMinimize;Width=Math.Min(1060,SystemParameters.WorkArea.Width);Height=Math.Min(720,SystemParameters.WorkArea.Height);MinWidth=Math.Min(760,Width);MinHeight=100;
             ContentPanel.Children.Remove(Scroll);
             var layout=new Grid();layout.ColumnDefinitions.Add(new ColumnDefinition {Width=new GridLength(170)});layout.ColumnDefinitions.Add(new ColumnDefinition());
             var nav=new StackPanel {Margin=new Thickness(14,4,10,14)};layout.Children.Add(nav);Grid.SetColumn(workspace,1);layout.Children.Add(workspace);workspace.Children.Add(Scroll);ContentPanel.Children.Add(layout);
@@ -339,13 +319,13 @@ namespace TokenMonitor {
             AddTile(Names[3],kimiBalance,"Kimi API",kimiBalanceStatus,KimiApiSwitch);
             AddTile(Names[4],openCard,"OpenAI API",OpenAiInfo,OpenAiSwitch);
             var home=new Grid();
-            home.SetBinding(FrameworkElement.MinHeightProperty,new System.Windows.Data.Binding("ViewportHeight"){Source=Scroll});
-            home.RowDefinitions.Add(new RowDefinition());
+
+            home.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
             home.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
             home.Children.Add(services);
             Scroll.Content=home;
             HomeVisibility();
-            services.VerticalAlignment=VerticalAlignment.Stretch;
+            services.VerticalAlignment=VerticalAlignment.Top;
             services.Margin=new Thickness(0,0,0,16);
             GptSwitch.Checked+=(s,e)=>app.SetGpt(true);GptSwitch.Unchecked+=(s,e)=>app.SetGpt(false);
             DeepSwitch.Checked+=(s,e)=>app.SetDeep(true);DeepSwitch.Unchecked+=(s,e)=>app.SetDeep(false);
@@ -357,7 +337,7 @@ namespace TokenMonitor {
             var auto=new StackPanel {Orientation=Orientation.Horizontal};var autoLabel=UI.Text("自动刷新",12,UI.Muted);autoLabel.VerticalAlignment=VerticalAlignment.Center;autoLabel.Margin=new Thickness(0,0,12,0);auto.Children.Add(autoLabel);auto.Children.Add(Interval);auto.Margin=new Thickness(2,3,2,16);var footer=new StackPanel();Grid.SetRow(footer,1);home.Children.Add(footer);footer.Children.Add(auto);
             Refresh=UI.Button("立即刷新",async()=>await app.RefreshAll(true));Refresh.SetResourceReference(Button.BackgroundProperty,"ActionBrush");Refresh.SetResourceReference(Button.ForegroundProperty,"ActionInkBrush");
             Refresh.Margin=new Thickness(16,0,0,0);auto.Children.Add(Refresh);
-            var note=UI.Text(app.FirstRun?"先选择要监控的服务，再完成连接。":"悬浮球可拖动 · 双击展开详情 · 右键打开菜单 · 关闭主界面后继续在托盘运行",10.5,UI.Muted);note.Margin=new Thickness(1,13,0,0);footer.Children.Add(note);
+            var note=UI.Text(app.FirstRun?"先选择要监控的服务，再完成连接。":"浮窗与悬浮球双击切换 · 右键打开菜单 · 关闭主界面后继续在托盘运行",10.5,UI.Muted);note.Margin=new Thickness(1,13,0,0);footer.Children.Add(note);
             var updatePanel=new StackPanel {Margin=new Thickness(0,14,0,0)};
             UpdateStatus=UI.Text("启动时及每 6 小时自动检查更新",11,UI.Muted);updatePanel.Children.Add(UpdateStatus);
             var updateActions=new WrapPanel {Margin=new Thickness(0,8,0,0)};
@@ -365,23 +345,30 @@ namespace TokenMonitor {
             DownloadUpdate=UI.Button("发布页 ↗",async()=>await app.InstallUpdate());DownloadUpdate.Margin=new Thickness(8,0,0,0);updateActions.Children.Add(DownloadUpdate);
             updatePanel.Children.Add(updateActions);
             RenderMetrics();CloseAction=()=>Hide();
+            FitHeight();
+        }
+        public override void FitHeight() {
+            // Keep the control center stable across pages and font changes.
+            MinWidth=Math.Min(760,SystemParameters.WorkArea.Width);MinHeight=100;
+            Width=Math.Min(920,SystemParameters.WorkArea.Width);
+            Height=Math.Min(720,SystemParameters.WorkArea.Height);
         }
         void SelectNavigation(string name) {foreach(var pair in navigation)pair.Value.SetResourceReference(Button.BackgroundProperty,pair.Key==name?"ButtonBrush":"SurfaceBrush");}
         public void OpenSettings(string page) {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage==null)SettingsPage=new SettingsView(app,ShowOverview,true);
             workspace.Children.Clear();workspace.Children.Add(SettingsPage);
-            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v4.0.0";
+            SettingsPage.SelectPage(page);SelectNavigation(page);Subtitle.Text="设置  /  v4.1.0";FitHeight();
         }
         public void HistoryChanged() {if(history!=null&&workspace.Children.Contains(history))history.Render();}
         public void ShowHistory() {
             if(SettingsPage!=null&&SettingsPage.Busy)return;
             if(SettingsPage!=null){SettingsPage.ClearSecrets();SettingsPage=null;}
-            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v4.0.0";
+            history=new HistoryView(app);workspace.Children.Clear();workspace.Children.Add(history);SelectNavigation("历史趋势");Subtitle.Text="历史趋势  /  v4.1.0";FitHeight();
         }
         public void ShowOverview() {
             if(SettingsPage!=null){if(SettingsPage.Busy)return;SettingsPage.ClearSecrets();SettingsPage=null;}
-            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("主页");Subtitle.Text="用量控制中心  /  v4.0.0";
+            workspace.Children.Clear();workspace.Children.Add(Scroll);SelectNavigation("主页");Subtitle.Text="用量控制中心  /  v4.1.0";FitHeight();
         }
         public void RenderUpdate(AvailableRelease release,string message) {
             UpdateStatus.Text=(release==null?"":"发现新版本 "+release.Tag+"，可下载更新。")+(message==null?"":(release==null?"":"\n")+message)+(release==null||string.IsNullOrWhiteSpace(release.Notes)?"":"\n\n"+release.Notes);
@@ -557,9 +544,9 @@ namespace TokenMonitor {
                 finally {setBusy(false);}
                 if(previousSource!=app.Prefs.DeepSource){app.DeepData=null;app.DeepError=null;app.Deep.Render(null,null,false);}
                 if(SelectedPage=="DeepSeek API")input.Clear();LocalStorage.Notice=null;Appearance.Apply(app.Prefs.Appearance);if(SelectedPage!="OpenAI API")showMessage("已保存"+SelectedPage+"。");if(SelectedPage=="DeepSeek API"){app.ResetDeepCooldown();await app.RefreshDeep(true);}
-            });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=Brushes.White;
+            });Appearance.Paint(save,Button.BackgroundProperty,UI.Green);save.Foreground=UI.Brush(Brand.Navy);
             save.Content="保存连接设置";saveButton=save;save.HorizontalAlignment=HorizontalAlignment.Left;save.Margin=new Thickness(0,12,0,0);
-            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v4.0.0 · Windows 桌面用量工具",13,UI.Muted));
+            Body=pages["关于软件"];var aboutLogo=Brand.Mark(64);aboutLogo.HorizontalAlignment=HorizontalAlignment.Left;Body.Children.Add(aboutLogo);Body.Children.Add(UI.Text("Token Monitor",23,UI.Ink,true));Body.Children.Add(UI.Text("版本 v4.1.0 · Windows 桌面用量工具",13,UI.Muted));
             var about=UI.Text("查看 ChatGPT 和 Kimi 订阅额度、DeepSeek 和 Kimi API 余额，以及 OpenAI API 用量。",13,UI.Muted);about.Margin=new Thickness(0,20,0,24);Body.Children.Add(about);
             var updateInfo=UI.Text("",12,UI.Muted);updateInfo.SetBinding(TextBlock.TextProperty,new System.Windows.Data.Binding("Text"){Source=app.Main.UpdateStatus});Body.Children.Add(updateInfo);
             var aboutActions=new WrapPanel {Margin=new Thickness(0,14,0,18)};

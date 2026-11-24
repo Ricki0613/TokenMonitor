@@ -11,6 +11,7 @@ namespace TokenMonitor {
     public static class DashboardUiTests {
         public static async Task Run(MonitorApp app,IDictionary<string,object> checks,string folder) {
             var main=app.Main;
+            await CompactUiTests.Run(app,checks,folder);
             main.ShowOverview();app.UpdateLabels();main.UpdateLayout();
             var minimize=SettingsUiTests.Walk(main).OfType<Button>().First(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="最小化");
             var close=SettingsUiTests.Walk(main).OfType<Button>().First(x=>System.Windows.Automation.AutomationProperties.GetName(x)=="关闭窗口");
@@ -36,7 +37,7 @@ namespace TokenMonitor {
                 await app.Dispatcher.InvokeAsync(()=>{},DispatcherPriority.ApplicationIdle);
                 window.UpdateLayout();
                 var buttons=SettingsUiTests.Walk(window).OfType<Button>().Where(x=>x.IsVisible).ToList();
-                checks["compact_minimum_"+window.Title]=buttons.Count==1&&window.MinWidth<200&&window.Scroll.VerticalScrollBarVisibility==ScrollBarVisibility.Disabled
+                checks["compact_minimum_"+window.Title]=buttons.Count==1&&window.MinWidth>=FontSizing.CompactWidth&&window.MaxWidth==window.MinWidth&&window.ResizeMode==ResizeMode.NoResize&&window.Scroll.VerticalScrollBarVisibility==ScrollBarVisibility.Disabled
                     &&window.Body.ActualHeight<=window.Scroll.ViewportHeight+1&&window.Body.ActualWidth<=window.Scroll.ViewportWidth+1;
                 UI.SaveImage(window,Path.Combine(folder,"minimum-"+window.Title+".png"));
             }
@@ -48,7 +49,7 @@ namespace TokenMonitor {
                 main.UpdateLayout();
                 var buttons=SettingsUiTests.Walk(main).OfType<Button>().Where(x=>Equals(x.Content,"连接设置")&&x.IsVisible).ToArray();
                 var home=(Grid)main.Scroll.Content;
-                checks["home_preset_"+count]=buttons.Length==count&&home.ActualHeight>=main.Scroll.ViewportHeight-1;
+                checks["home_preset_"+count]=buttons.Length==count&&main.Scroll.ExtentWidth<=main.Scroll.ViewportWidth+1;
                 UI.SaveImage(main,Path.Combine(folder,"home-"+count+".png"));
             }
             var text=SettingsUiTests.Walk(main).OfType<TextBlock>().Select(x=>x.Text).ToList();
